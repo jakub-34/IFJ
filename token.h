@@ -5,6 +5,7 @@
 typedef enum token_type {
     identifier_token,
     int_token,
+    float_token,
     string_token,
     keyword_token,
     eof_token
