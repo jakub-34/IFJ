@@ -292,6 +292,7 @@ void code(token_t *token){
         }
         token = get_token();
         code(token);
+        return;
     }
 
     // <CODE> -> ID <ID_DEFINING> ; <CODE>
@@ -305,6 +306,7 @@ void code(token_t *token){
         }
         token = get_token();
         code(token);
+        return;
     }
 
     // <CODE> -> if ( <EXPRESSION> ) <WHILE_IF_EXTENSION> { <CODE_SEQUENCE> } else { <CODE_SEQUENCE> } <CODE>
@@ -349,6 +351,7 @@ void code(token_t *token){
         }
         token = get_token();
         code(token);
+        return;
     }
 
     // <CODE> -> while ( <EXPRESSION> ) <WHILE_IF_EXTENSION> { <CODE_SEQUENCE> } <CODE>
@@ -379,6 +382,7 @@ void code(token_t *token){
         }
         token = get_token();
         code(token);
+        return;
     }
 
     // <CODE> -> pub fn ID ( <PARAM> ) <TYPE> { <CODE_SEQUENCE> <FUNC_EXTENSION> } <CODE>
@@ -420,12 +424,16 @@ void code(token_t *token){
         }
         token = get_token();
         code(token);
+        return;
     }
 
     // <CODE> -> EOF
     if(token->type == eof_token){
         return;
     }
+
+    fprintf(stderr, "Syntax error\n");
+    exit(2);
 }
 
 
