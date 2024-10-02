@@ -5,7 +5,7 @@
 #include "token.h"
 
 
-// declarations
+// needed declarations
 token_t* in_param(token_t *token);
 token_t* in_param_continuation(token_t *token);
 token_t* param(token_t *token);
