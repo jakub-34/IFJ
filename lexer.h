@@ -35,7 +35,13 @@ typedef enum lexer_state {
     int_type,
     int_type_3,
     float_type,
-    float_type_6
+    float_type_6,
+    import,
+    import_m,
+    import_p,
+    import_o,
+    import_r,
+    import_end
 } lexer_state_t;
 
 

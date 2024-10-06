@@ -26,7 +26,8 @@ token_t* get_token(){
     bool multiline = false;
     while(true){
         char current_char = getchar();
-        printf("Current char: %c\n", current_char);
+        //printf("Current char: %c\n", current_char);
+        //printf("Current char: %i\n", current_char);
         //printf("Current state: %i\n", state);
 
         switch(state){
@@ -75,28 +76,35 @@ token_t* get_token(){
                     append_to_str_buffer(buffer, current_char);
                     return create_token(colon_token, buffer->string);
                 }
-                else if (current_char == '|'){
+                else if (current_char == '|' || current_char == '.' || current_char == ','){
                     append_to_str_buffer(buffer, current_char);
-                    return create_token(pipe_token, buffer->string);
+                    return create_token(punctuation_token, buffer->string);
                 }
                 else if (current_char == '+' || current_char == '-' || current_char == '*'){
                     append_to_str_buffer(buffer, current_char);
                     return create_token(binary_operator_token, buffer->string);
                 }
-                else if(current_char == '='){
+                else if (current_char == '='){
                     state = equal;
                     append_to_str_buffer(buffer, current_char);
                 }
-                else if(current_char == '!'){
+                else if (current_char == '!'){
                     state = not_equal;
                     append_to_str_buffer(buffer, current_char);
                 }
-                else if(current_char == '<' || current_char == '>'){
+                else if (current_char == '@'){
+                    state = import;
+                    append_to_str_buffer(buffer, current_char);
+                }
+                else if (current_char == '<' || current_char == '>'){
                     state = relational_operator;
                     append_to_str_buffer(buffer, current_char);
                 }
-                else if(current_char == 9 || current_char == 32 || current_char == '\n'){
+                else if (current_char == 9 || current_char == 32 || current_char == '\n' || current_char == '\r'){
                     state = start;
+                }
+                else if (current_char == -1){
+                    return NULL;
                 }
                 else{
                     fprintf(stderr, "lexical error\n");
@@ -110,6 +118,7 @@ token_t* get_token(){
                     append_to_str_buffer(buffer, current_char);
                 }
                 else{
+                    ungetc(current_char, stdin);
                     return create_token(identifier_token, buffer->string);
                 }
                 break;
@@ -132,6 +141,7 @@ token_t* get_token(){
                     append_to_str_buffer(buffer, current_char);
                 }
                 else{
+                    ungetc(current_char, stdin);
                     return create_token(int_token, buffer->string);
                 }
                 break;
@@ -149,6 +159,7 @@ token_t* get_token(){
                     append_to_str_buffer(buffer, current_char);
                 }
                 else{
+                    ungetc(current_char, stdin);
                     return create_token(int_token, buffer->string);
                 }
                 break;
@@ -173,6 +184,7 @@ token_t* get_token(){
                     append_to_str_buffer(buffer, current_char);
                 }
                 else{
+                    ungetc(current_char, stdin);
                     return create_token(float_token, buffer->string);
                 }
                 break;
@@ -208,6 +220,7 @@ token_t* get_token(){
                     append_to_str_buffer(buffer, current_char);
                 }
                 else{
+                    ungetc(current_char, stdin);
                     return create_token(float_token, buffer->string);
                 }
                 break;
@@ -215,6 +228,7 @@ token_t* get_token(){
             //handling string
             case string:
                 if (current_char == '"'){
+                    append_to_str_buffer(buffer, current_char);
                     return create_token(string_token, buffer->string);
                 }
                 else if (current_char == '\\'){
@@ -285,6 +299,7 @@ token_t* get_token(){
 
             case escape_sequence2_end:
                 if (current_char == '"'){
+                    append_to_str_buffer(buffer, current_char);
                     return create_token(string_token, buffer->string);
                 }
                 else if (current_char == '\\'){
@@ -334,6 +349,7 @@ token_t* get_token(){
 
             case escape_sequence3_end:
                  if (current_char == '"'){
+                    append_to_str_buffer(buffer, current_char);
                     return create_token(string_token, buffer->string);
                 }
                 else if (current_char == '\\'){
@@ -384,6 +400,7 @@ token_t* get_token(){
                     append_to_str_buffer(buffer, '\n');
                 }
                 else{
+                    ungetc(current_char, stdin);
                     return create_token(string_token, buffer->string);
                 }
                 break;
@@ -394,6 +411,7 @@ token_t* get_token(){
                     state = comment;
                 }
                 else{
+                    ungetc(current_char, stdin);
                     append_to_str_buffer(buffer, '/');
                     return create_token(binary_operator_token, buffer->string);
                 }
@@ -411,6 +429,7 @@ token_t* get_token(){
                     return create_token(double_equal_token, buffer->string);
                 }
                 else{
+                    ungetc(current_char, stdin);
                     return create_token(equal_token, buffer->string);
                 }
                 break;
@@ -432,6 +451,7 @@ token_t* get_token(){
                     return create_token(relational_operator_token, buffer->string);
                 }
                 else{
+                    ungetc(current_char, stdin);
                     return create_token(relational_operator_token, buffer->string);
                 }
                 break;
@@ -532,13 +552,85 @@ token_t* get_token(){
                     exit(1);
                 }
                 break;
+
+            //handling import 
+            case import:
+                if (current_char == 'i'){
+                    state = import_m;
+                    append_to_str_buffer(buffer, current_char);
+                }
+                else{
+                    fprintf(stderr, "lexical error\n");
+                    exit(1);
+                }
+                break;
+
+            case import_m:
+                if (current_char == 'm'){
+                    state = import_p;
+                    append_to_str_buffer(buffer, current_char);
+                }
+                else{
+                    fprintf(stderr, "lexical error\n");
+                    exit(1);
+                }
+                break;
+
+            case import_p:
+                if (current_char == 'p'){
+                    state = import_o;
+                    append_to_str_buffer(buffer, current_char);
+                }
+                else{
+                    fprintf(stderr, "lexical error\n");
+                    exit(1);
+                }
+                break;
+
+            case import_o:
+                if (current_char == 'o'){
+                    state = import_r;
+                    append_to_str_buffer(buffer, current_char);
+                }
+                else{
+                    fprintf(stderr, "lexical error\n");
+                    exit(1);
+                }
+                break;
+
+            case import_r:
+                if (current_char == 'r'){
+                    state = import_end;
+                    append_to_str_buffer(buffer, current_char);
+                }
+                else{
+                    fprintf(stderr, "lexical error\n");
+                    exit(1);
+                }
+                break;
+
+            case import_end:
+                if (current_char == 't'){
+                    append_to_str_buffer(buffer, current_char);
+                    return create_token(import_token, buffer->string);
+                }
+                else{
+                    fprintf(stderr, "lexical error\n");
+                    exit(1);
+                }
+                break;
             
         }
     }
 }
 
 int main(){
-    token_t* token = get_token();
-    printf("Token: %s\n", token->data);
+    token_t* token;
+    while ((token = get_token()) != NULL) {
+        printf("Token: %s\n", token->data);
+        
+        free(token->data);  
+        free(token);        
+    }
     return 0;
 }
