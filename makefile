@@ -1,7 +1,7 @@
 CC = gcc
 CFLAGS = -Wall -Wextra -pedantic
 
-SRCS = lexer.c str_buffer.c
+SRCS = lexer.c str_buffer.c keyword_check.c
 OBJS = $(SRCS:.c=.o)
 TARGET = lexer_test
 
