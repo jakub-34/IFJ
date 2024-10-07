@@ -19,6 +19,7 @@ typedef enum token_type {
     not_equal_token,
     relational_operator_token,
     type_token,
+    null_token,
     import_token
 } token_type_t;
 

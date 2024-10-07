@@ -6,6 +6,7 @@
 #include "lexer.h"
 #include "str_buffer.h"
 #include "token.h"
+#include "keyword_check.h"
 
 
 token_t* create_token(token_type_t type, char* data) {
@@ -119,7 +120,7 @@ token_t* get_token(){
                 }
                 else{
                     ungetc(current_char, stdin);
-                    return create_token(identifier_token, buffer->string);
+                    return create_token(kw_check(buffer->string), buffer->string);
                 }
                 break;
 
