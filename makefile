@@ -1,9 +1,9 @@
 CC = gcc
-CFLAGS = -Wall -Wextra -pedantic
+CFLAGS = -Wall -Wextra -pedantic -g
 
-SRCS = lexer.c str_buffer.c keyword_check.c
+SRCS = lexer.c str_buffer.c keyword_check.c syntakticka_analyza.c
 OBJS = $(SRCS:.c=.o)
-TARGET = lexer_test
+TARGET = syn_test
 
 .PHONY: all clean
 

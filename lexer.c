@@ -34,6 +34,10 @@ token_t* get_token(){
         switch(state){
             //starting point
             case start:
+                if (current_char == EOF){
+                    return create_token(eof_token, NULL);
+                }
+
                 if (current_char == '_' || isalpha(current_char)){
                     state = identifier;
                     append_to_str_buffer(buffer, current_char);
@@ -625,14 +629,14 @@ token_t* get_token(){
     }
 }
 
-int main(){
-    token_t* token;
-    while ((token = get_token()) != NULL) {
-        printf("Token: %s\n", token->data);
-        printf("Type: %d\n", token->type);
-        
-        free(token->data);  
-        free(token);        
-    }
-    return 0;
-}
+// int main(){
+//     token_t* token;
+//     while ((token = get_token()) != NULL) {
+//         printf("Token: %s\n", token->data);
+//         printf("Type: %d\n", token->type);
+//         
+//         free(token->data);  
+//         free(token);        
+//     }
+//     return 0;
+// }

@@ -12,6 +12,11 @@ token_t* param(token_t *token);
 token_t* param_continuation(token_t *token);
 
 
+// <EXPRESSION>
+// TODO
+void expression(){}
+
+
 // <VARIABLE>
 int variable(token_t *token){
     // <VARIABLE> -> var
@@ -30,33 +35,38 @@ int variable(token_t *token){
 
 // <TYPE>
 void type(token_t *token){
-    // <TERM> -> nejaky_int
-    if(token->type == int_token){
+    if(token->type == type_token){
         return;
     }
 
-    // <TERM> -> nejaky_float
-    if(token->type == float_token){
-        return;
-    }
-
-    // <TERM> -> nejaky_string
-    if(token->type == string_token){
-        return;
-    }
-
-    // <TERM> -> NULL
-    // TODO
-    
     fprintf(stderr, "Syntax error\n");
     exit(2);
 }
 
 
 // <TERM>
-int term(){
-    // TODO
-    return 0;
+int term(token_t *token){
+    // <TERM> -> nejaky_int
+    if(token->type == int_token){
+        return 0;
+    }
+
+    // <TERM> -> nejaky_float
+    if(token->type == float_token){
+        return 0;
+    }
+
+    // <TERM> -> nejaky_string
+    if(token->type == string_token){
+        return 0;
+    }
+
+    // <TERM> -> NULL
+    if(token->type == null_token){
+        return 0;
+    }
+
+    return 1;
 }
 
 
@@ -86,7 +96,7 @@ token_t *in_param(token_t *token){
     }
 
     // <IN_PARAM> -> <TERM> <IN_PARAM_CONTINUATION>
-    if(term() == 0){
+    if(term(token) == 0){
         token = get_token();
         token = in_param_continuation(token);
         return token;
@@ -99,7 +109,8 @@ token_t *in_param(token_t *token){
 
 // <NEXT_VARIABLE_CONTINUATION>
 void next_variable_continuaton(token_t *token){
-    // TODO expression
+    // <NEXT_VARIABLE_CONTINUATION> -> <EXPRESSION>
+    expression();
 
     // <NEXT_VARIABLE_CONTINUATION> -> ID ( <IN_PARAM> )
     if(token->type == identifier_token){
@@ -167,7 +178,7 @@ void next_id_defining(token_t *token){
         }
     }
 
-    // TODO expression
+    expression();
 }
 
 
@@ -261,7 +272,7 @@ token_t *param(token_t *token){
 // <RETURN_VALUE>
 // !!! don't call get_token() after this function !!!
 token_t *return_value(token_t *token){
-    // TODO expression
+    expression();
 
     // <RETURN_VALUE> -> ε
     return token;
@@ -323,7 +334,7 @@ token_t *code_sequence(token_t *token){
             exit(2);
         }
         token = get_token();
-        // TODO expression
+        expression();
         token = get_token();
         if(strcmp(token->data, ")") != 0){
             fprintf(stderr, "Syntax error\n");
@@ -368,7 +379,7 @@ token_t *code_sequence(token_t *token){
             exit(2);
         }
         token = get_token();
-        // TODO expression
+        expression();
         token = get_token();
         if(strcmp(token->data, ")") != 0){
             fprintf(stderr, "Syntax error\n");
@@ -398,6 +409,11 @@ token_t *code_sequence(token_t *token){
 
 // <CODE>
 void code(token_t *token){
+    // <CODE> -> EOF
+    if(token->type == eof_token){
+        return;
+    }
+
     // <CODE> -> <VARIABLE> ID <VARIABLE_CONTINUATION> ; <CODE>
     if(variable(token) == 0){
         token = get_token();
@@ -439,7 +455,7 @@ void code(token_t *token){
             exit(2);
         }
         token = get_token();
-        // TODO expression
+        expression();
         token = get_token();
         if(strcmp(token->data, ")") != 0){
             fprintf(stderr, "Syntax error\n");
@@ -484,7 +500,7 @@ void code(token_t *token){
             exit(2);
         }
         token = get_token();
-        // TODO expression
+        expression();
         token = get_token();
         if(strcmp(token->data, ")") != 0){
             fprintf(stderr, "Syntax error\n");
@@ -549,11 +565,6 @@ void code(token_t *token){
         return;
     }
 
-    // <CODE> -> EOF
-    if(token->type == eof_token){
-        return;
-    }
-
     fprintf(stderr, "Syntax error\n");
     exit(2);
 }
@@ -563,6 +574,8 @@ int main(){
     token_t *token = get_token();
 
     code(token);
+
+    printf("Syntax OK\n");
 
     return 0;
 }
