@@ -628,6 +628,7 @@ int main(){
     token_t* token;
     while ((token = get_token()) != NULL) {
         printf("Token: %s\n", token->data);
+        printf("Type: %d\n", token->type);
         
         free(token->data);  
         free(token);        
