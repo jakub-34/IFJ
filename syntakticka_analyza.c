@@ -205,7 +205,112 @@ token_t *while_if_extension(token_t *token){
 // <CODE_SEQUENCE>
 // !!! don't call get_token() after this function !!!
 token_t *code_sequence(token_t *token){
-    // TODO
+    // <CODE_SEQUENCE> -> <VARIABLE> ID <VARIABLE_CONTINUATION> ; <CODE_SEQUENCE>
+        if(token->type == identifier_token){
+        token = get_token();
+        id_defining(token);
+        token = get_token();
+        if(strcmp(token->data, ";") != 0){
+            fprintf(stderr, "Syntax error\n");
+            exit(2);
+        }
+        token = get_token();
+        token = code_sequence(token);
+        return token;
+    }
+
+
+    // <CODE_SEQUENCE> -> ID <ID_DEFINING> ; <CODE_SEQUENCE>
+    if(token->type == identifier_token){
+        token = get_token();
+        id_defining(token);
+        token = get_token();
+        if(strcmp(token->data, ";") != 0){
+            fprintf(stderr, "Syntax error\n");
+            exit(2);
+        }
+        token = get_token();
+        token = code_sequence(token);
+        return token;
+    }
+
+    // <CODE_SEQUENCE> -> if ( <EXPRESSION> ) <WHILE_IF_EXTENSION> { <CODE_SEQUENCE> } else { <CODE_SEQUENCE> } <CODE_SEQUENCE>
+    if(strcmp(token->data, "if") == 0){
+        token = get_token();
+        if(strcmp(token->data, "(") != 0){
+            fprintf(stderr, "Syntax error\n");
+            exit(2);
+        }
+        token = get_token();
+        // TODO expression
+        token = get_token();
+        if(strcmp(token->data, ")") != 0){
+            fprintf(stderr, "Syntax error\n");
+            exit(2);
+        }
+        token = get_token();
+        token = while_if_extension(token);
+        if(strcmp(token->data, "{") != 0){
+            fprintf(stderr, "Syntax error\n");
+            exit(2);
+        }
+        token = code_sequence(token);
+        if(strcmp(token->data, "}") != 0){
+            fprintf(stderr, "Syntax error\n");
+            exit(2);
+        }
+        token = get_token();
+        if(strcmp(token->data, "else") != 0){
+            fprintf(stderr, "Syntax error\n");
+            exit(2);
+        }
+        token = get_token();
+        if(strcmp(token->data, "{") != 0){
+            fprintf(stderr, "Syntax error\n");
+            exit(2);
+        }
+        token = code_sequence(token);
+        if(strcmp(token->data, "}") != 0){
+            fprintf(stderr, "Syntax error\n");
+            exit(2);
+        }
+        token = get_token();
+        token = code_sequence(token);
+        return token;
+    }
+
+    // <CODE_SEQUENCE> -> while ( <EXPRESSION> ) <WHILE_IF_EXTENSION> { <CODE_SEQUENCE> } <CODE_SEQUENCE>
+    if(strcmp(token->data, "while") == 0){
+        token = get_token();
+        if(strcmp(token->data, "(") != 0){
+            fprintf(stderr, "Syntax error\n");
+            exit(2);
+        }
+        token = get_token();
+        // TODO expression
+        token = get_token();
+        if(strcmp(token->data, ")") != 0){
+            fprintf(stderr, "Syntax error\n");
+            exit(2);
+        }
+        token = get_token();
+        token = while_if_extension(token);
+        if(strcmp(token->data, "{") != 0){
+            fprintf(stderr, "Syntax error\n");
+            exit(2);
+        }
+        token = get_token();
+        token = code_sequence(token);
+        if(strcmp(token->data, "}") != 0){
+            fprintf(stderr, "Syntax error\n");
+            exit(2);
+        }
+        token = get_token();
+        token = code_sequence(token);
+        return token;
+    }
+
+    // <CODE_SEQUENCE> -> ε
     return token;
 }
 
