@@ -34,6 +34,10 @@ token_t* get_token(){
         switch(state){
             //starting point
             case start:
+                if (current_char == EOF){
+                    return create_token(eof_token, NULL);
+                }
+                
                 if (current_char == '_' || isalpha(current_char)){
                     state = identifier;
                     append_to_str_buffer(buffer, current_char);
