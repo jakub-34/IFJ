@@ -350,6 +350,11 @@ token_t *func_extension(token_t *token){
     if(strcmp(token->data, "return") == 0){
         token = get_token();
         token = return_value(token);
+        if(strcmp(token->data, ";") != 0){
+            fprintf(stderr, "Syntax error\n");
+            exit(2);
+        }
+        token = get_token();
         return token;
     }
 
@@ -641,7 +646,49 @@ void code(token_t *token){
 
 int main(){
     token_t *token = get_token();
-    
+
+    // Check for header
+    if(strcmp(token->data, "const") != 0){
+        fprintf(stderr, "Syntax error\n");
+        exit(2);
+    }
+    token = get_token();
+    if(strcmp(token->data, "ifj") != 0){
+        fprintf(stderr, "Syntax error\n");
+        exit(2);
+    }
+    token = get_token();
+    if(token->type != equal_token){
+        fprintf(stderr, "Syntax error\n");
+        exit(2);
+    }
+    token = get_token();
+    if(token->type != import_token){
+        fprintf(stderr, "Syntax error\n");
+        exit(2);
+    }
+    token = get_token();
+    if(strcmp(token->data, "(") != 0){
+        fprintf(stderr, "Syntax error\n");
+        exit(2);
+    }
+    token = get_token();
+    if(strcmp(token->data, "ifj24.zig") != 0){
+        fprintf(stderr, "Syntax error\n");
+        exit(2);
+    }
+    token = get_token();
+    if(strcmp(token->data, ")") != 0){
+        fprintf(stderr, "Syntax error\n");
+        exit(2);
+    }
+    token = get_token();
+    if(strcmp(token->data, ";") != 0){
+        fprintf(stderr, "Syntax error\n");
+        exit(2);
+    }
+    token = get_token();
+
     code(token);
 
     printf("Syntax OK\n");
