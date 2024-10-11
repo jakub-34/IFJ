@@ -10,18 +10,17 @@ DONE
     generate_variable_declaration
     generate_function_call_assignment
     generate_expression_assignment
+    generate_function_definition
+    generate_if_statement
+    generate_while_loop
+    generate_assignment_or_expression
+    generate_expression
+    generate_function_return
 
 TODO:
     generate_initial_values()
     generate_predefined_funcs()
-    generate_function_definition()
-    generate_if_statement
-    generate_while_loop
-    generate_function_definition
-    generate_assignment_or_expression
-    generate_expression
-    generate_function_return
-    
+
 ******************************************** */
 
 void generate_initial_values(){
@@ -70,7 +69,7 @@ void generate_initial_values(){
 }
 
 
-// TODO: use ast->active and next_node()
+// TODO: use ast->active? and next_node()
 void generate_code(AST *ast) {
     ASTNode *line_node = ast->currentLine;
     
@@ -83,7 +82,7 @@ void generate_code(AST *ast) {
 }
 
 
-// TODO: use ast->active and next_node()
+// TODO: use ast->active? and next_node()
 void generate_code_for_line(ASTNode *line_node, AST *ast) {
     ASTNode *token_node = line_node; // we are at the first token
 
@@ -103,8 +102,6 @@ void generate_code_for_line(ASTNode *line_node, AST *ast) {
         generate_while_loop(token_node, ast);
     } else if (strcmp(first_token->data, "pub") == 0){
         generate_function_definition(token_node, ast); // TODO
-    } else if (strcmp(first_token->data, "return") == 0) { // TODO
-        generate_function_return(token_node, ast);
     } else {
         generate_assignment_or_expression(token_node, ast);
     }
@@ -219,7 +216,7 @@ void generate_if_statement(ASTNode *token_node, AST *ast) {
     printf("LABEL if_then%d\n", current_if_label);
 
     // Then branch
-    while(strcmp(token_node->token->data, '}') != 0){
+    while(strcmp(token_node->token->data, "}") != 0){
         generate_code_for_line(token_node, ast);
     }
     
@@ -229,7 +226,7 @@ void generate_if_statement(ASTNode *token_node, AST *ast) {
     printf("LABEL if_else%d\n", current_if_label);
 
     // Else branch
-    while(strcmp(token_node->token->data, '}') != 0){
+    while(strcmp(token_node->token->data, "}") != 0){
         generate_code_for_line(token_node, ast);
     }
 
@@ -261,7 +258,7 @@ void generate_while_loop(ASTNode *token_node, AST *ast){
     token_node = next_node(ast);
 
     // Loop body until we reach '}'
-    while(strcmp(token_node->token->data, '}') != 0){
+    while(strcmp(token_node->token->data, "}") != 0){
         generate_code_for_line(token_node, ast);
     }
 
@@ -397,7 +394,7 @@ void generate_function_call(ASTNode *token_node, AST *ast){
 
     printf("CALL %s\n", function_name_label);
 
-    // printf("POPFRAME\n"); - use it when we handle function return
+    printf("POPFRAME\n");
 }
 
 // Converts escape sequences to \xyz format
@@ -430,3 +427,129 @@ char *escape_string(const char *input) {
     escaped[j] = '\0'; // Null-terminate the string
     return escaped;
 }
+
+// pub fn ID (parametry) <return TYPE> {
+// pub fn add(a : i32, b : i32) i32{
+
+void generate_function_definition(ASTNode *token_node, AST *ast) {
+    // Skip 'pub'
+    token_node = node_next(ast); // <- 'fn'
+    // Skip 'fn'
+    token_node = node_next(ast); // <- function name
+
+    // LABEL function_name
+    printf("LABEL %s\n", token_node->token->data);
+
+    // Skip '('
+    token_node = node_next(ast); // <- '('
+    // Go to first parameter or ')'
+    token_node = node_next(ast); // <- parameter or ')'
+
+    // Going through parameters
+    while(strcmp(token_node->token->data, ")") != 0){
+        // Parameter: <id> : <type>
+        char *param_name = token_node->token->data; // Store identifier
+
+        // Skip ':'
+        token_node = node_next(ast); // <- ':'
+        // Move to type
+        token_node = node_next(ast); // <- type
+        
+        printf("DEFVAR LF@%s\n", param_name);
+
+        int param_idx = 0; // IDK: maybe should be static int?               = if broken - but in static
+        printf("MOVE LF@%s LF@__param%d\n", param_name, param_idx);
+        param_idx++;
+
+        // Move to ',' or ')'
+        token_node = node_next(ast); // <- ',' or ')'
+
+        // Skip ','
+        if(strcmp(token_node->token->data, ",") == 0){
+            token_node = node_next(ast); // go to next parameter
+        }
+    }
+
+    // Return type
+    token_node = node_next(ast); // <- return type
+
+    // pub fn ID (parametry) <return TYPE> {
+    token_node = next_node(ast); // <- '{'
+
+    while(strcmp(token_node->token->data, "return") != 0 && strcmp(token_node->token->data, "}") != 0){
+        generate_code_for_line(token_node, ast);                // maybe check this
+        token_node = next_node(ast);
+    }
+    // return;}
+    generate_function_return(token_node, ast);
+}
+
+void generate_function_return(ASTNode *token_node, AST *ast) {
+    // Skip 'return'
+    token_node = token_node->next;
+
+    if (token_node == NULL || strcmp(token_node->token->data, ";") == 0) {
+        // Void return
+        printf("RETURN\n");
+        return;
+    }
+
+    // Generate code for the return expression
+    generate_expression(token_node, ast);
+    
+    // return x + 5;
+
+    // The result is on top of the stack
+    // No need to do anything else, just call RETURN
+    printf("POPS GF@__return");
+    printf("RETURN\n");
+}
+
+
+
+
+////////////// EXAMPLE //////////////
+pub fn add(a : i32, b : i32) i32 {
+    var result : i32 = a + b;
+    return result;
+}
+
+// definition
+LABEL add
+# Parameters are in LF@%param0 and LF@%param1
+DEFVAR LF@a
+MOVE LF@a LF@%param0
+DEFVAR LF@b
+MOVE LF@b LF@%param1
+
+# Local variable 'result'
+DEFVAR LF@result
+
+# Expression 'a + b'
+PUSHS LF@a
+PUSHS LF@b
+ADDS
+POPS LF@result
+
+# Return 'result'
+PUSHS LF@result
+RETURN
+
+// call
+var sum : i32 = add(5, 10);
+
+# Prepare for function call
+CREATEFRAME
+DEFVAR TF@%param0
+MOVE TF@%param0 int@5
+DEFVAR TF@%param1
+MOVE TF@%param1 int@10
+
+# Call the function
+PUSHFRAME
+CALL add
+
+# After the call, the return value is on top of the stack
+# Assign it to 'sum'
+DEFVAR LF@sum
+POPS LF@sum
