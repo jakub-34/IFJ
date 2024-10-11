@@ -8,7 +8,8 @@ DONE
     generate_code
     generate_code_for_line
     generate_variable_declaration
-
+    generate_function_call_assignment
+    generate_expression_assignment
 
 TODO:
     generate_initial_values()
@@ -19,8 +20,7 @@ TODO:
     generate_function_definition
     generate_assignment_or_expression
     generate_expression
-    generate_function_call_assignment
-    generate_expression_assignment
+    generate_function_return
     
 ******************************************** */
 
@@ -103,6 +103,8 @@ void generate_code_for_line(ASTNode *line_node, AST *ast) {
         generate_while_loop(token_node, ast);
     } else if (strcmp(first_token->data, "pub") == 0){
         generate_function_definition(token_node, ast); // TODO
+    } else if (strcmp(first_token->data, "return") == 0) { // TODO
+        generate_function_return(token_node, ast);
     } else {
         generate_assignment_or_expression(token_node, ast);
     }
@@ -328,19 +330,103 @@ void generate_assignment_or_expression(ASTNode *token_node, AST *ast){
     }
 }
 
-void generate_expression_assignment(char *var_name, ASTNode *token_node, AST *ast){
+void generate_expression_assignment(char *identifier, ASTNode *token_node, AST *ast){
     // Generate expression code
     generate_expression(token_node, ast);
 
     // Pop the result into variable
-    printf("POPS LF@%s\n", var_name);
+    printf("POPS LF@%s\n", identifier);
 }
 
-void generate_function_call_assignment(char *var_name, ASTNode *function_call_node){
+void generate_function_call_assignment(char *identifier, ASTNode *function_call_node, AST *ast){
     // Generate function call code
-    generate_function_call(function_call_node);
+    generate_function_call(function_call_node, ast);
 
-    // After function call the return value is on top of the stack
-    // Pop the return value into variable
-    printf("POPS LF@%s\n", var_name);
+    // We stored the function return value into global variable '__return'
+    // Move the return value into the identifier
+    printf("MOVE LF@%s GF@__return\n", identifier);
+}
+
+void generate_function_call(ASTNode *token_node, AST *ast){
+
+    // Store the function name from the function node token
+    char *function_name_label = token_node->token->data;
+
+    // Skip '(' (hoping that '(' is the next token - ehm SYNTAX ANALYSIS)
+    token_node = next_node(ast);
+
+    // Move to first argument, or ')'
+    token_node = next_node(ast);
+
+    printf("CREATEFRAME\n");
+
+    int arg_count = 0;
+    while (strcmp(token_node->token->data, ")") != 0){
+        // generate_expression(token_node, ast);
+        printf("DEFVAR TF@arg%d\n", arg_count);
+
+        if (token_node->token->data == identifier_token){
+            // If argument is a variable
+            printf("MOVE TF@arg%d LF@%s\n", arg_count, token_node->token->data);
+        }
+        else if (token_node->token->data == int_token){
+            // If argument is an int literal
+            printf("MOVE TF@arg%d int@%d\n", arg_count, token_node->token->data);
+        }
+        else if (token_node->token->data == float_token){
+            // If argument is an float literal
+            printf("MOVE TF@arg%d int@%f\n", arg_count, token_node->token->data);
+        }
+        else if (token_node->token->data == string_token){
+            // If argument is an string literal
+            printf("MOVE TF@arg%d int@%s\n", arg_count, escape_string(token_node->token->data));
+        }
+
+        // Move to the next token
+        token_node = next_node(ast);
+
+        if(strcmp(token_node->token->data, ",") == 0){
+            token_node = next_node(ast);
+        }
+
+        arg_count++;
+    }
+
+
+    printf("PUSHFRAME\n");
+
+    printf("CALL %s\n", function_name_label);
+
+    // printf("POPFRAME\n"); - use it when we handle function return
+}
+
+// Converts escape sequences to \xyz format
+char *escape_string(const char *input) {
+
+    size_t input_len = strlen(input);
+    // Allocate enough space: worst case every character is escaped as \xyz
+    size_t max_len = (input_len * 4) + 1;
+    char *escaped = malloc(sizeof(char)*max_len);
+    if (!escaped) {
+        fprintf(stderr, "Memory allocation failed in escape_string\n");
+        exit(1000);                         // random exit number, mad?
+    }
+
+    size_t j = 0; // Index for escaped string
+
+    for (size_t i = 0; i < input_len; i++) {
+        unsigned char c = input[i];
+        // Check if character needs to be escaped
+        if (c <= 32 || c == 35 || c == 92) {
+            escaped[j++] = '\\';
+            escaped[j++] = '0';
+            escaped[j++] = '0' + (c / 10) % 10;
+            escaped[j++] = '0' + c % 10;
+        } else {
+            escaped[j++] = c;
+        }
+    }
+
+    escaped[j] = '\0'; // Null-terminate the string
+    return escaped;
 }
