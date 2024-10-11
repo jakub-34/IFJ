@@ -281,7 +281,7 @@ void generate_variable_declaration(ASTNode *token_node, AST *ast) {
         // Variable initialization
         token_node = token_node->next;
         if (token_node->token->type == identifier_token) { // var var_name = <function_call>;
-            generate_function_call(token_node);
+            generate_function_call(token_node, ast);
         } else{
             generate_expression(token_node, var_name); // var var_name = <expression>;
         }
@@ -311,7 +311,7 @@ void generate_assignment_or_expression(ASTNode *token_node, AST *ast){
                 ASTNode *after_function_node = function_call_node->next; // checking whats function name
                 if(strcmp(after_function_node, "(") == 0){
                     // Its a function call
-                    generate_function_call_assignment(identifier, function_call_node);
+                    generate_function_call_assignment(identifier, function_call_node, ast);
                 } else{
                     // Its not a function call, it has to be an expression
                     generate_expression_assignment(identifier, token_node, ast);
@@ -322,7 +322,7 @@ void generate_assignment_or_expression(ASTNode *token_node, AST *ast){
             }
         } else if(strcmp(token_node->token->data, "(") == 0){
             // Its a function call as a statement
-            generate_function_call(token_node);
+            generate_function_call(token_node, ast);
         }
     }
 }
@@ -504,52 +504,3 @@ void generate_function_return(ASTNode *token_node, AST *ast) {
     printf("POPS GF@__return");
     printf("RETURN\n");
 }
-
-
-
-
-////////////// EXAMPLE //////////////
-pub fn add(a : i32, b : i32) i32 {
-    var result : i32 = a + b;
-    return result;
-}
-
-// definition
-LABEL add
-# Parameters are in LF@%param0 and LF@%param1
-DEFVAR LF@a
-MOVE LF@a LF@%param0
-DEFVAR LF@b
-MOVE LF@b LF@%param1
-
-# Local variable 'result'
-DEFVAR LF@result
-
-# Expression 'a + b'
-PUSHS LF@a
-PUSHS LF@b
-ADDS
-POPS LF@result
-
-# Return 'result'
-PUSHS LF@result
-RETURN
-
-// call
-var sum : i32 = add(5, 10);
-
-# Prepare for function call
-CREATEFRAME
-DEFVAR TF@%param0
-MOVE TF@%param0 int@5
-DEFVAR TF@%param1
-MOVE TF@%param1 int@10
-
-# Call the function
-PUSHFRAME
-CALL add
-
-# After the call, the return value is on top of the stack
-# Assign it to 'sum'
-DEFVAR LF@sum
-POPS LF@sum
