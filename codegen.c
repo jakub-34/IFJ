@@ -393,8 +393,6 @@ void generate_function_call(ASTNode *token_node, AST *ast){
     printf("PUSHFRAME\n");
 
     printf("CALL %s\n", function_name_label);
-
-    printf("POPFRAME\n");
 }
 
 // Converts escape sequences to \xyz format
@@ -490,6 +488,7 @@ void generate_function_return(ASTNode *token_node, AST *ast) {
 
     if (token_node == NULL || strcmp(token_node->token->data, ";") == 0) {
         // Void return
+        printf("POPFRAME\n");
         printf("RETURN\n");
         return;
     }
@@ -502,5 +501,6 @@ void generate_function_return(ASTNode *token_node, AST *ast) {
     // The result is on top of the stack
     // No need to do anything else, just call RETURN
     printf("POPS GF@__return");
+    printf("POPFRAME\n");
     printf("RETURN\n");
 }
