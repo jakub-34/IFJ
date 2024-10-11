@@ -30,7 +30,7 @@ void create_node(token_t *token, AST *ast){
 
     if (ast->active != NULL) {
         // If last added token was end of line character, we create a new line
-        if (ast->active->token->data == semicolon_token || strcmp(ast->active->token->data, '{') == 0 || strcmp(ast->active->token->data, '}') == 0) {
+        if (ast->active->token->data == semicolon_token || strcmp(ast->active->token->data, '{') == 0) {
             ast->currentLine->newLine = node;
         }
         // We just continue on the line
