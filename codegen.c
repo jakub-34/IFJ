@@ -10,7 +10,6 @@ DONE:
 TODO:
     generate header + create+push frame for main??
     generate_initial_values()
-    generate_builtin_funcs()
     
     ifj.readstr - mame dve verze??
     Does it work with function recursion??
@@ -70,7 +69,7 @@ void generate_code(AST *ast) {
     
     generate_initial_values();
 
-    while (line_node->newLine != NULL) { // until there are no new lines 
+    while (line_node->newLine != NULL) { // until there are no new lines
         generate_code_for_line(line_node, ast); // when we go through the line
         line_node = line_node->newLine; // go to the left (to the next line)
     }
@@ -96,7 +95,7 @@ void generate_code_for_line(ASTNode *line_node, AST *ast) {
     } else if (strcmp(first_token->data, "while") == 0) {
         generate_while_loop(token_node, ast);
     } else if (strcmp(first_token->data, "pub") == 0){
-        generate_function_definition(token_node, ast); // TODO
+        generate_function_definition(token_node, ast);
     } else {
         generate_assignment_or_expression(token_node, ast);
     }
@@ -110,7 +109,7 @@ void generate_expression(ASTNode *token_node, AST *ast){
     static int bi_operations_counter = 0;
     static int div_counter = 0;
 
-    while (strcmp(current_token_data, ";") != 0 && strcmp(current_token_data,"{") != 0 && strcmp(current_token_data,"|") != 0){
+    while (strcmp(current_token_data, ";") != 0 && strcmp(current_token_data,"{") != 0 && strcmp(current_token_data,"|") != 0 && strcmp(current_token_data,")") != 0){
         current_token_data = token_node->token->data;
         current_token_type = token_node->token->type;
 
@@ -199,16 +198,16 @@ void generate_expression(ASTNode *token_node, AST *ast){
             div_counter++;
         }
         else{ // variables
-            printf("PUSHS LF@%s", token_node->token->data);                         // Mosime pretypovat!!!
+            printf("PUSHS LF@%s", token_node->token->data);
         }
-        token_node = token_node->next; // next token
+        token_node = next_node(ast); // next token
     }
 }
 
 // TODO: Fix nested if statements
 void generate_if_statement(ASTNode *token_node, AST *ast) {
-    // Skip 'if'
-    token_node = token_node->next->next; // skip '(' and go to expression 'x'
+    token_node = next_node(ast);    // Skip 'if'
+    token_node = next_node(ast);    // skip '(' and go to expression 'x'
     static int if_label_counter = 0;
     int current_if_label = if_label_counter++;
     // example line
@@ -216,7 +215,16 @@ void generate_if_statement(ASTNode *token_node, AST *ast) {
     // if, (, x y < y z > || z y == y 0 == && ||, ), {
     generate_expression(token_node, ast);
 
-    printf("POPS GF@__condition_bool"); // store the condition result into global boolean variable
+    token_node = ast->active;   // Gotta update the token_node pointer after generate_expression
+    if (strcmp(token_node->token->data, ")") == 0){
+        token_node = next_node(ast);
+    }
+
+    if (strcmp(token_node->token->data, "|") == 0){
+        
+    }
+
+    printf("POPS GF@__condition_bool"); // pop the condition result into global boolean variable
  
     printf("JUMPIFEQ if_then%d GF@__condition_bool bool@true\n", current_if_label);
     printf("JUMP if_else%i\n", current_if_label);
@@ -300,20 +308,19 @@ void generate_variable_declaration(ASTNode *token_node, AST *ast) {
                 generate_function_call_assignment(var_name, token_node, ast);
             }
             else{
-                generate_expression(token_node, var_name);
+                generate_expression_assignment(var_name, token_node, ast);
             }
         }
         else{
             if(token_node->token->type == string_token){
                 char *escaped_expr_temp = escape_string(token_node->token->data);
-                generate_expression_assignment(var_name, token_node, ast);
+                generate_string_assignment(var_name, escaped_expr_temp);
                 free(escaped_expr_temp);
             }
-            generate_expression(token_node, var_name); // var var_name = <expression>;
+            generate_expression_assignment(var_name, token_node, ast); // var var_name = <expression>;
         }
-    // } else {
-    //     // Uninitialized variable IDK??
-    //     printf("MOVE LF@%s nil@nil\n", var_name); // var ..;
+    // } else { // var var_name;
+    //     // Uninitialized variable, dont have to do anything
     // }
     }
 }
@@ -368,6 +375,12 @@ void generate_function_call_assignment(char *identifier, ASTNode *function_call_
     // Pop return value from data stack into the identifier
     printf("POPS LF@%s\n", identifier);
 }
+
+void generate_string_assignment(char *identifier, char *string){
+    printf("PUSHS string@%s\n", string);
+    printf("POPS LF@%s\n", identifier);
+}
+
 
 void generate_function_call(ASTNode *token_node, AST *ast){
 
@@ -511,7 +524,7 @@ void generate_function_definition(ASTNode *token_node, AST *ast) {
 
 void generate_function_return(ASTNode *token_node, AST *ast) {
     // Skip 'return'
-    token_node = token_node->next;
+    token_node = next_node(ast);
 
     if (token_node == NULL || strcmp(token_node->token->data, ";") == 0) {
         // Void return
@@ -556,7 +569,7 @@ void generate_builtin_functions(){
 
     ///////////////// Function: ifj.readstr WITH HANDLING ESCAPE CHARACTERS HANDLING //////////////////////////
 
-    // TODO: testing - does READ command read string with 
+    // TODO: testing - does READ instruction read string with \n ?
 
     printf("LABEL ifj.readstr\n");
     
