@@ -63,7 +63,8 @@ void generate_initial_values(){
 }
 
 
-// TODO: use ast->active? and next_node()
+// TODO: The beggining kinda scuffed no? use ast->active? and next_node()??
+    // No setting first active node?
 void generate_code(AST *ast) {
     ASTNode *line_node = ast->currentLine;
     
@@ -77,26 +78,31 @@ void generate_code(AST *ast) {
 
 
 // TODO: use ast->active? and next_node()
+// Loop this until token_type == EOF? - no, this would break for/while recursive call or generate_code_for_line, or no??
 void generate_code_for_line(ASTNode *line_node, AST *ast) {
     ASTNode *token_node = line_node; // we are at the first token
 
     token_t *first_token = token_node->token;
 
-    // skip '}'
-    if (strcmp(first_token->data, "}") == 0) {
+    // skip '}'     
+    if (strcmp(first_token->data, "}") == 0){   // This should probably never be truth
         token_node = next_node(ast);
         first_token = token_node->token;
     }
 
-    if (strcmp(first_token->data, "var") == 0 || strcmp(first_token->data, "const") == 0) {
+    if (strcmp(first_token->data, "var") == 0 || strcmp(first_token->data, "const") == 0){
         generate_variable_declaration(token_node, ast);
-    } else if (strcmp(first_token->data, "if") == 0) {
+    }
+    else if (strcmp(first_token->data, "if") == 0){
         generate_if_statement(token_node, ast);
-    } else if (strcmp(first_token->data, "while") == 0) {
+    }
+    else if (strcmp(first_token->data, "while") == 0){
         generate_while_loop(token_node, ast);
-    } else if (strcmp(first_token->data, "pub") == 0){
+    }
+    else if (strcmp(first_token->data, "pub") == 0){
         generate_function_definition(token_node, ast);
-    } else {
+    }
+    else{
         generate_assignment_or_expression(token_node, ast);
     }
 }
