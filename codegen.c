@@ -511,9 +511,6 @@ void generate_function_return(ASTNode *token_node, AST *ast) {
 }
 
 void generate_builtin_functions(){
-// just for copying
-printf("\n");
-
 // Functions for reading / writing
     // pub fn ifj.readstr() ?[]u8
     
@@ -649,26 +646,20 @@ printf("\n");
     printf("POPFRAME\n");
     printf("RETURN\n");
 
-    // pub fn ifj.write(term) void
+    
+    // pub fn ifj.write(term) void //            IDK
     printf("LABEL ifj.write\n");
     printf("DEFVAR LF@__term\n");
+    printf("DEFVAR LF@__type\n");
 
     printf("MOVE LF@__term LF@__arg0\n");
-    printf("DEFVAR LF@__type\n");
     printf("TYPE LF@__type LF@__term\n");
 
     printf("JUMPIFEQ ifj_write_nil LF@__type string@nil\n");
 
-                // If term is float, ensure it is printed with '%a' format                  // sus
-                // printf("JUMPIFEQ ifj_write_float LF@__type string@float\n");
-
     printf("WRITE LF@__term\n");
     printf("JUMP ifj_write_end\n");
-
-    printf("LABEL ifj_write_float\n");
-    printf("WRITE LF@__term\n");
-    printf("JUMP ifj_write_end\n");
-
+    
     printf("LABEL ifj_write_nil\n");
     printf("WRITE string@null\n");
 
@@ -681,11 +672,11 @@ printf("\n");
     /// pub fn ifj.i2f(term ∶ i32) f64
     printf("LABEL ifj.i2f\n");
     
-    printf("DEFVAR LF@term\n");
-    printf("MOVE LF@term LF@%%param0\n");
+    printf("DEFVAR LF@__term\n");
+    printf("MOVE LF@__term LF@__arg0\n");
     
     printf("DEFVAR LF@__retval\n");
-    printf("INT2FLOAT LF@__retval LF@term\n");
+    printf("INT2FLOAT LF@__retval LF@__term\n");
     
     // Push the result onto the data stack
     printf("PUSHS LF@__retval\n");
@@ -695,27 +686,28 @@ printf("\n");
     // pub fn ifj.f2i(term ∶ f64) i32
     printf("LABEL ifj.f2i\n");
     
-    printf("DEFVAR LF@term\n");
-    printf("MOVE LF@term LF@%%param0\n");
+    printf("DEFVAR LF@__term\n");
+    printf("MOVE LF@__term LF@__arg0\n");
     
     printf("DEFVAR LF@__retval\n");
-    printf("FLOAT2INT LF@__retval LF@term\n");
+    printf("FLOAT2INT LF@__retval LF@_term\n");
     
     // Push the result onto the data stack
     printf("PUSHS LF@__retval\n");
     printf("POPFRAME\n");
     printf("RETURN\n\n");
 
+
 // Functions for strings
     // pub fn ifj.string(term) []u8
     printf("LABEL ifj.string\n");
 
-    // The parameter is in LF@%param0
-    printf("DEFVAR LF@term\n");
-    printf("MOVE LF@term LF@%%param0\n");
+    // The parameter is in LF__arg0
+    printf("DEFVAR LF@__term\n");
+    printf("MOVE LF@__term LF@__arg0\n");
 
     // Push the term onto the data stack (identity function)
-    printf("PUSHS LF@term\n");
+    printf("PUSHS LF@__term\n");
     printf("POPFRAME\n");
     printf("RETURN\n\n");
 
@@ -723,11 +715,11 @@ printf("\n");
     // pub fn ifj.length(𝑠 : []u8) i32
     printf("LABEL ifj.length\n");
     
-    printf("DEFVAR LF@s\n");
-    printf("MOVE LF@s LF@%%param0\n");
+    printf("DEFVAR LF@__s\n");
+    printf("MOVE LF@s LF@__arg0\n");
     
     printf("DEFVAR LF@__retval\n");
-    printf("STRLEN LF@__retval LF@s\n");
+    printf("STRLEN LF@__retval LF@__s\n");
     
     // Push the result onto the data stack
     printf("PUSHS LF@__retval\n");
@@ -737,13 +729,13 @@ printf("\n");
     // pub fn ifj.concat(𝑠1 : []u8, 𝑠2 : []u8) []u8
     printf("LABEL ifj.concat\n");
     
-    printf("DEFVAR LF@s1\n");
-    printf("DEFVAR LF@s2\n");
-    printf("MOVE LF@s1 LF@%%param0\n");
-    printf("MOVE LF@s2 LF@%%param1\n");
-    
+    printf("DEFVAR LF@__s1\n");
+    printf("DEFVAR LF@__s2\n");
     printf("DEFVAR LF@__retval\n");
-    printf("CONCAT LF@__retval LF@s1 LF@s2\n");
+
+    printf("MOVE LF@__s1 LF@__arg0\n");
+    printf("MOVE LF@__s2 LF@__arg1\n");    
+    printf("CONCAT LF@__retval LF@__s1 LF@__s2\n");
     
     // Push the result onto the data stack
     printf("PUSHS LF@__retval\n");
@@ -754,69 +746,80 @@ printf("\n");
     printf("LABEL ifj.substring\n");
 
     // Define local variables
-    printf("DEFVAR LF@s\n");
-    printf("DEFVAR LF@i\n");
-    printf("DEFVAR LF@j\n");
-    printf("MOVE LF@s LF@%%param0\n");
-    printf("MOVE LF@i LF@%%param1\n");
-    printf("MOVE LF@j LF@%%param2\n");
+    printf("DEFVAR LF@__s\n");
+    printf("DEFVAR LF@__i\n");
+    printf("DEFVAR LF@__j\n");
+    
+    printf("MOVE LF@__s LF@__arg0\n");
+    printf("MOVE LF@__i LF@__arg1\n");
+    printf("MOVE LF@__j LF@__arg2\n");
 
     printf("DEFVAR LF@__retval\n");
     printf("DEFVAR LF@__len\n");
     printf("DEFVAR LF@__cond\n");
+    printf("DEFVAR LF@__substring\n");
+    printf("DEFVAR LF@__tmp_string\n");
+    printf("DEFVAR LF@__tmp_char\n");
 
     // Get the length of the string s
-    printf("STRLEN LF@__len LF@s\n");
+    printf("STRLEN LF@__len LF@__s\n");
 
     // Check for error conditions
     // If i < 0
-    printf("LT LF@__cond LF@i int@0\n");
+    printf("LT LF@__cond LF@__i int@0\n");
     printf("JUMPIFEQ ifj_substring_error LF@__cond bool@true\n");
 
     // If j < 0
-    printf("LT LF@__cond LF@j int@0\n");
+    printf("LT LF@__cond LF@__j int@0\n");
     printf("JUMPIFEQ ifj_substring_error LF@__cond bool@true\n");
 
     // If i > j
-    printf("GT LF@__cond LF@i LF@j\n");
+    printf("GT LF@__cond LF@__i LF@__j\n");
     printf("JUMPIFEQ ifj_substring_error LF@__cond bool@true\n");
 
     // If i >= length(s)
-    printf("GT LF@__cond LF@i LF@__len\n");
-    printf("JUMPIFEQ ifj_substring_error LF@__cond bool@true\n");
-    printf("EQ LF@__cond LF@i LF@__len\n");
-    printf("JUMPIFEQ ifj_substring_error LF@__cond bool@true\n");
+    printf("LT LF@__cond LF@__i LF@__len\n");
+    printf("JUMPIFNEQ ifj_substring_error LF@__cond bool@true\n");
 
     // If j > length(s)
-    printf("GT LF@__cond LF@j LF@__len\n");
+    printf("GT LF@__cond LF@__j LF@__len\n");
     printf("JUMPIFEQ ifj_substring_error LF@__cond bool@true\n");
 
-    // Calculate the length of the substring: len = j - i
-    printf("DEFVAR LF@__sub_len\n");
-    printf("SUB LF@__sub_len LF@j LF@i\n");
+    // Empty string init
+    printf("MOVE LF@__substring string@\n");
 
-    // Extract the substring using SUBSTR
-    printf("SUBSTR LF@__retval LF@s LF@i LF@__sub_len\n");
-    printf("PUSHS LF@__retval\n");
-    printf("POPFRAME\n");
-    printf("RETURN\n");
+    // while loop
+    printf("LABEL ifj_substring_while\n");
+    printf("JUMPIFEQ ifj_substring_while_end LF@__i LF@__j\n");
+
+    printf("GETCHAR LF@__tmp_char LF@__s LF@__i\n");
+    printf("MOVE LF@__tmp_string LF@__substring\n");
+    printf("CONCAT LF@__substring LF@__tmp_string LF@__tmp_char\n");
+
+    printf("ADD LF@__i LF@__i int@1 \n"); // i++
+    printf("JUMP ifj_substring_while\n");
 
     // Error label: Return nil
     printf("LABEL ifj_substring_error\n");
     printf("MOVE LF@__retval nil@nil\n");
+    printf("JUMP ifj_substring_end");
+
+    printf("LABEL ifj_substring_while_end\n");
+    printf("MOVE LF@__retval LF@__substring");
+    printf("LABEL ifj_substring_end");
+
     printf("PUSHS LF@__retval\n");
     printf("POPFRAME\n");
     printf("RETURN\n\n");
 
     // pub fn ifj.strcmp(𝑠1 : []u8, 𝑠2 : []u8) i32
-
     printf("LABEL ifj.strcmp\n");
 
     // Define local variables
-    printf("DEFVAR LF@s1\n");
-    printf("DEFVAR LF@s2\n");
-    printf("MOVE LF@s1 LF@%%param0\n");
-    printf("MOVE LF@s2 LF@%%param1\n");
+    printf("DEFVAR LF@__s1\n");
+    printf("DEFVAR LF@__s2\n");
+    printf("MOVE LF@__s1 LF@__arg0\n");
+    printf("MOVE LF@__s2 LF@__arg1\n");
 
     printf("DEFVAR LF@__len1\n");
     printf("DEFVAR LF@__len2\n");
@@ -827,8 +830,9 @@ printf("\n");
     printf("DEFVAR LF@__cmp_res\n");
     printf("DEFVAR LF@__retval\n");
 
-    printf("STRLEN LF@__len1 LF@s1\n");
-    printf("STRLEN LF@__len2 LF@s2\n");
+    
+    printf("STRLEN LF@__len1 LF@__s1\n");
+    printf("STRLEN LF@__len2 LF@__s2\n");
 
     // Determine the minimum length
     printf("LT LF@__cmp_res LF@__len1 LF@__len2\n");
@@ -839,7 +843,7 @@ printf("\n");
     printf("MOVE LF@__min_len LF@__len1\n");
 
     printf("LABEL ifj_strcmp_start\n");
-    printf("MOVE LF@__i int@0\n");
+    printf("MOVE LF@__i int@0\n"); // i = 0
 
     printf("LABEL ifj_strcmp_loop\n");
     // Loop condition: __i < __min_len
@@ -849,8 +853,8 @@ printf("\n");
 
     printf("LABEL ifj_strcmp_compare_chars\n");
     // Get characters at position __i
-    printf("GETCHAR LF@__char1 LF@s1 LF@__i\n");
-    printf("GETCHAR LF@__char2 LF@s2 LF@__i\n");
+    printf("GETCHAR LF@__char1 LF@__s1 LF@__i\n");
+    printf("GETCHAR LF@__char2 LF@__s2 LF@__i\n");
     // Compare characters
     printf("GT LF@__cmp_res LF@__char1 LF@__char2\n");
     printf("JUMPIFEQ ifj_strcmp_s1_greater LF@__cmp_res bool@true\n");
@@ -877,8 +881,7 @@ printf("\n");
     printf("GT LF@__cmp_res LF@__len1 LF@__len2\n");
     printf("JUMPIFEQ ifj_strcmp_s1_greater LF@__cmp_res bool@true\n");
     // Else, s1 is less than s2
-    printf("MOVE LF@__retval int@-1\n");
-    printf("JUMP ifj_strcmp_end\n");
+    printf("JUMP ifj_strcmp_s1_less\n");
 
     printf("LABEL ifj_strcmp_equal\n");
     printf("MOVE LF@__retval int@0\n");
@@ -889,14 +892,15 @@ printf("\n");
     printf("POPFRAME\n");
     printf("RETURN\n\n");
 
+
     // pub fn ifj.ord(𝑠 : []u8, 𝑖 : i32) i32
     printf("LABEL ifj.ord\n");
 
     // Define local variables
-    printf("DEFVAR LF@s\n");
-    printf("DEFVAR LF@i\n");
-    printf("MOVE LF@s LF@%%param0\n");
-    printf("MOVE LF@i LF@%%param1\n");
+    printf("DEFVAR LF@__s\n");
+    printf("DEFVAR LF@__i\n");
+    printf("MOVE LF@__s LF@__arg0\n");
+    printf("MOVE LF@__i LF@__arg1\n");
 
     printf("DEFVAR LF@__len\n");
     printf("DEFVAR LF@__char\n");
@@ -913,17 +917,15 @@ printf("\n");
     printf("JUMPIFEQ ifj_ord_end LF@__cond bool@true\n");
 
     // Check if i < 0 or i >= len(s)
-    printf("LT LF@__cond LF@i int@0\n");
+    printf("LT LF@__cond LF@__i int@0\n");
     printf("JUMPIFEQ ifj_ord_end LF@__cond bool@true\n");
-    printf("GT LF@__cond LF@i LF@__len\n");
+    printf("GT LF@__cond LF@__i LF@__len\n");
     printf("JUMPIFEQ ifj_ord_end LF@__cond bool@true\n");
-    printf("EQ LF@__cond LF@i LF@__len\n");
+    printf("EQ LF@__cond LF@__i LF@__len\n");
     printf("JUMPIFEQ ifj_ord_end LF@__cond bool@true\n");
 
-    // Get character at position i
-    printf("GETCHAR LF@__char LF@s LF@i\n");
-    // Convert character to integer (ASCII code)
-    printf("STRI2INT LF@__retval LF@__char int@0\n");
+    // Get character at position i and convert character to integer (ASCII value)
+    printf("STRI2INT LF@__retval LF@__s LF@__i\n");
 
     printf("LABEL ifj_ord_end\n");
     printf("PUSHS LF@__retval\n");
@@ -934,17 +936,16 @@ printf("\n");
     printf("LABEL ifj.chr\n");
 
     // Define local variables
-    printf("DEFVAR LF@i\n");
-    printf("MOVE LF@i LF@%%param0\n");
+    printf("DEFVAR LF@__i\n");
+    printf("MOVE LF@__i LF@__arg0\n");
 
     printf("DEFVAR LF@__retval\n");
 
     // Convert integer to character
-    printf("INT2CHAR LF@__retval LF@i\n");
+    printf("INT2CHAR LF@__retval LF@__i\n");
 
     // Push the result onto the data stack
     printf("PUSHS LF@__retval\n");
     printf("POPFRAME\n");
     printf("RETURN\n\n");
-
 }
