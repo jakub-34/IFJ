@@ -47,34 +47,10 @@ void create_node(token_t *token, AST *ast){
     ast->active = node;
 }
 
-
-
-// void create_child(token_t *token, AST *ast){
-//     ASTNode *child = malloc(sizeof(ASTNode)); // allocing for node
-//     if (child == NULL){
-//         exit(1000);
-//     }
-    
-//     child->next = NULL;
-//     child->newLine = NULL; // ptr to child, for quick access back
-//     child->token = token;
-
-//     if (ast->currentLine != NULL) {
-//         ast->currentLine->newLine = child;
-//     } else if (ast->active) {
-//         ast->active->newLine = child;
-//     } else {
-//         ast->root = child; // If no current grammar or active node, set as root
-//     }
-//     ast->active = child;
-// }
-
 ASTNode *next_node(AST *ast) {
     if (ast->active == NULL){
         return NULL;
     }
-
-    
 
     if (ast->active->next == NULL) {
         ast->active = ast->currentLine->newLine; 
@@ -89,7 +65,7 @@ ASTNode *next_node(AST *ast) {
 }
 
 
-// Prints value of every token in every node
+// Prints value of every token in every node, (Could be used to free the tree??)
 // void traverse_AST(AST *ast){
 //     ast->active = ast->root;
 //     ast->currentLine = ast->root;

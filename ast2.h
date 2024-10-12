@@ -22,9 +22,7 @@ AST *createAST();
 
 void create_node(token_t *token, AST *ast);
 
-// void create_child(token_t *token, AST *ast);
-
 ASTNode *next_node(AST *ast);
 
 
-#endif
+#endif //AST_H

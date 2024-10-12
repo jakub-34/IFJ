@@ -3,4 +3,4 @@
 
 void generate_code(AST *ast);
 
-#endif
+#endif //CODEGEN_H
