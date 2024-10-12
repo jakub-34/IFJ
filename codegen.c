@@ -4,38 +4,26 @@
 #include "ast2.h"
 
 /* *******************************************
-DONE
-    generate_code
-    generate_code_for_line
-    generate_variable_declaration
-    generate_function_call_assignment
-    generate_expression_assignment
-    generate_function_definition
-    generate_if_statement
-    generate_while_loop
-    generate_assignment_or_expression
-    generate_expression
-    generate_function_return
+DONE:
+
 
 TODO:
     generate header + create+push frame for main??
     generate_initial_values()
     generate_builtin_funcs()
     
-    ifj.readstr
+    ifj.readstr - mame dve verze??
+    Does it work with function recursion??
+    |ifwhile extension|
+    pretypovani u relacnich operatoru
 
-    Celociselne/desetinne deleni u generate_expression
 
 MIGHT NEED CHANGING: Issues with global variables
 
 ******************************************** */
 
 void generate_initial_values(){
-    // TODO: generate header
-    // 
     // printf("# - HEADER - #\n");
-    // printf(".IFJcode22\n");
-
     printf(".IFJcode24\n");             // Prolog
 
     // printf("CREATEFRAME\n");
@@ -59,11 +47,10 @@ void generate_initial_values(){
 
     printf("DEFVAR GF@__type_conver_res\n");
 
-
-    // printf("DEFVAR GF@%%bvar1\n");
+    printf("DEFVAR GF@__typecheck_var\n");
+    printf("DEFVAR GF@__typecheck_type\n");
 
     // printf("# - FUNCTION GLOBAL VARIABLES - #\n");
-    // printf("DEFVAR GF@__return\n");
     
     // printf("DEFVAR GF@%%fparam0\n");
     // printf("DEFVAR GF@%%fparam1\n");
@@ -121,6 +108,7 @@ void generate_expression(ASTNode *token_node, AST *ast){
     int current_token_type;
 
     static int bi_operations_counter = 0;
+    static int div_counter = 0;
 
     while (strcmp(current_token_data, ";") != 0 && strcmp(current_token_data,"{") != 0 && strcmp(current_token_data,"|") != 0){
         current_token_data = token_node->token->data;
@@ -160,10 +148,12 @@ void generate_expression(ASTNode *token_node, AST *ast){
             printf("PUSHS GF@__type_conver_var1\n");
 
             printf("LABEL convert_end%d\n", bi_operations_counter);
+
+            bi_operations_counter++;
         }
 
         // TODO: Doesnt handle relation operators as they can have other types than int and float
-        // if (current_token_type != identifier_token) {            
+        // if (current_token_type != identifier_token) {
         // }
 
         if(strcmp(current_token_data, "<") == 0){
@@ -197,7 +187,16 @@ void generate_expression(ASTNode *token_node, AST *ast){
             printf("MULS\n");
         }
         else if(strcmp(current_token_data, "/") == 0){
+            printf("POPS GF@__typecheck_var\n");
+            printf("TYPE GF@__typecheck_type GF@__typecheck_var\n");
+            printf("PUSHS GF@__typecheck_var\n");
+            printf("JUMPIFEQ __div_int%d GF@__typecheck_type string@int\n", div_counter);
             printf("DIVS\n");
+            printf("JUMP __div_end%d\n", div_counter);
+            printf("LABEL __div_int%d\n", div_counter);
+            printf("IDIVS\n");
+            printf("LABEL __div_end%d\n", div_counter);
+            div_counter++;
         }
         else{ // variables
             printf("PUSHS LF@%s", token_node->token->data);                         // Mosime pretypovat!!!
@@ -274,23 +273,42 @@ void generate_while_loop(ASTNode *token_node, AST *ast){
     printf("LABEL while_end%d\n", current_while_label);
 }
 
-// IDK: do we need 'type: int32' in our AST? Is it needed in code gen or just syntax analysis?
-// var x = 5;
+// var x = 5 + 4;
 // const y = foo();
+// var z = x + 5;
+// var a : []u8 = "radfsda";
 void generate_variable_declaration(ASTNode *token_node, AST *ast) {
     // Skip 'var' or 'const
-    token_node = next_node(ast);
+    token_node = next_node(ast);    // var_name
 
     char *var_name = token_node->token->data;
-    printf("DEFVAR LF@%s\n", var_name); 
+    printf("DEFVAR LF@%s\n", var_name);
 
-    token_node = token_node->next; // go to the next token
-    if (token_node != NULL && strcmp(token_node->token->data, "=") == 0) { // var var_name =;
+    token_node = next_node(ast);    // ":" | "=" | ε
+
+    // Skips ": type" if included in declaration
+    if (strcmp(token_node->token->data, ":") == 0){
+        token_node = next_node(ast);    // "type"
+        token_node = next_node(ast);
+    }
+
+    if (token_node != NULL && strcmp(token_node->token->data, "=") == 0){ // var var_name =
         // Variable initialization
-        token_node = token_node->next;
-        if (token_node->token->type == identifier_token) { // var var_name = <function_call>;
-            generate_function_call(token_node, ast);
-        } else{
+        token_node = next_node(ast);
+        if (token_node->token->type == identifier_token){   // var var_name = ID [variable or function call]
+            if (token_node->next->token->type == bracket_token){    // var var_name = <function_call>(
+                generate_function_call_assignment(var_name, token_node, ast);
+            }
+            else{
+                generate_expression(token_node, var_name);
+            }
+        }
+        else{
+            if(token_node->token->type == string_token){
+                char *escaped_expr_temp = escape_string(token_node->token->data);
+                generate_expression_assignment(var_name, token_node, ast);
+                free(escaped_expr_temp);
+            }
             generate_expression(token_node, var_name); // var var_name = <expression>;
         }
     // } else {
@@ -317,7 +335,7 @@ void generate_assignment_or_expression(ASTNode *token_node, AST *ast){
                 // Possible function call
                 ASTNode *function_call_node = token_node;
                 ASTNode *after_function_node = function_call_node->next; // checking whats function name
-                if(strcmp(after_function_node, "(") == 0){
+                if(strcmp(after_function_node->token->data, "(") == 0){
                     // Its a function call
                     generate_function_call_assignment(identifier, function_call_node, ast);
                 } else{
@@ -369,21 +387,23 @@ void generate_function_call(ASTNode *token_node, AST *ast){
         // generate_expression(token_node, ast);
         printf("DEFVAR TF@__arg%d\n", arg_count);
 
-        if (token_node->token->data == identifier_token){
+        if (token_node->token->type == identifier_token){
             // If argument is a variable
             printf("MOVE TF@__arg%d LF@%s\n", arg_count, token_node->token->data);
         }
-        else if (token_node->token->data == int_token){
+        else if (token_node->token->type == int_token){
             // If argument is an int literal
             printf("MOVE TF@__arg%d int@%d\n", arg_count, token_node->token->data);
         }
-        else if (token_node->token->data == float_token){
+        else if (token_node->token->type == float_token){
             // If argument is an float literal
-            printf("MOVE TF@__arg%d int@%f\n", arg_count, token_node->token->data);
+            printf("MOVE TF@__arg%d float@%f\n", arg_count, token_node->token->data);
         }
-        else if (token_node->token->data == string_token){
+        else if (token_node->token->type == string_token){
             // If argument is an string literal
-            printf("MOVE TF@__arg%d int@%s\n", arg_count, escape_string(token_node->token->data));
+            char *escaped_str_temp = escape_string(token_node->token->data);
+            printf("MOVE TF@__arg%d string@%s\n", arg_count, escaped_str_temp);
+            free(escaped_str_temp);
         }
 
         // Move to the next token
@@ -411,7 +431,7 @@ char *escape_string(const char *input) {
     char *escaped = malloc(sizeof(char)*max_len);
     if (!escaped) {
         fprintf(stderr, "Memory allocation failed in escape_string\n");
-        exit(1000);                         // random exit number, mad?
+        exit(1000);                         // random exit code, mad?
     }
 
     size_t j = 0; // Index for escaped string
@@ -451,6 +471,7 @@ void generate_function_definition(ASTNode *token_node, AST *ast) {
     token_node = node_next(ast); // <- parameter or ')'
 
     // Going through parameters
+    int param_idx = 0; // IDK: maybe should be static int?               = if broken - put in static
     while(strcmp(token_node->token->data, ")") != 0){
         // Parameter: <id> : <type>
         char *param_name = token_node->token->data; // Store identifier
@@ -462,7 +483,6 @@ void generate_function_definition(ASTNode *token_node, AST *ast) {
         
         printf("DEFVAR LF@%s\n", param_name);
 
-        int param_idx = 0; // IDK: maybe should be static int?               = if broken - put in static
         printf("MOVE LF@%s LF@__arg%d\n", param_name, param_idx);
         param_idx++;
 
@@ -505,7 +525,6 @@ void generate_function_return(ASTNode *token_node, AST *ast) {
     
     // The result is on top of the stack
     // No need to do anything else, just call RETURN
-    // printf("POPS GF@__return");
     printf("POPFRAME\n");
     printf("RETURN\n");
 }
@@ -572,7 +591,7 @@ void generate_builtin_functions(){
     printf("GETCHAR LF@__char LF@__retval LF@__i\n");
     
     // Compare the last character to '\n'
-    printf("EQ LF@__cmp_res LF@__char string@\\010\n");   // '\010' is octal for '\n'
+    printf("EQ LF@__cmp_res LF@__char string@\\n\n");
     printf("JUMPIFEQ ifj_readstr_remove_newline LF@__cmp_res bool@true\n");
     // If not equal, no need to remove newline
     printf("JUMP ifj_readstr_end\n");
@@ -612,8 +631,7 @@ void generate_builtin_functions(){
     
     ///////////////////////////////////////////////////////////////////////////////
     // pub fn ifj.readi32() ?i32
-    printf("LABEL ifj.readi32\n");                                      // Trochu by to tu chtelo ponerfovat, je tto jaksi overbuffed zbytecne
-                                                                        // Nemusime checkovat, co vlastne tisknem, who cares, jenom jestli to neni NILL
+    printf("LABEL ifj.readi32\n");
 
     printf("DEFVAR LF@__retval\n");
     printf("DEFVAR LF@__type\n");
@@ -632,7 +650,7 @@ void generate_builtin_functions(){
     // pub fn ifj.readf64() ?f64
     printf("LABEL ifj.readf64\n");
 
-    printf("DEFVAR LF__retval\n");
+    printf("DEFVAR LF@__retval\n");
     printf("DEFVAR LF@__type\n");
 
     printf("READ LF@__retval float\n");
