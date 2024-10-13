@@ -16,17 +16,22 @@
 //     }
 // }
 
+//         if (x) |y| {
+//             ifj.print("Two\n");
+//              y = x+1;
+//         }
+//         else{
+//         }
+
 
 
 /* *******************************************
 TODO:
     ifj.readstr - mame dve verze??
     Does it work with function recursion??
-    |ifwhile extension|
-    pretypovani u relacnich operatoru
-
     after every generate_expression update token_node
 
+    use Temp frame for if/while temporary variables?
 
 MIGHT NEED CHANGING: Issues with global variables
 WHAT NEEDS TO BE EXAMINED: FRAMES, LOOPS, IF STATEMENTS
@@ -34,8 +39,7 @@ WHAT NEEDS TO BE EXAMINED: FRAMES, LOOPS, IF STATEMENTS
 ******************************************** */
 
 void generate_initial_values(){
-    // printf("# - HEADER - #\n");
-    printf(".IFJcode24\n");             // Prolog
+    printf(".IFJcode24\n");             // Prolog?
 
     // condition result for if/while statements
     printf("DEFVAR GF@__condition_bool\n");
@@ -51,7 +55,11 @@ void generate_initial_values(){
 
     // variables for checking types of operands for division
     printf("DEFVAR GF@__typecheck_var\n");
-    printf("DEFVAR GF@__typecheck_type\n");    
+    printf("DEFVAR GF@__typecheck_type\n");
+
+    // variable for checking if/while extension
+    printf("DEFVAR GF@__extcheck_var\n");
+    printf("DEFVAR GF@__extcheck_type\n");
     
     // Print language built-in functions
     generate_builtin_functions();
@@ -63,24 +71,22 @@ void generate_initial_values(){
     printf("LABEL main\n");
 }
 
-
-// TODO: The beggining kinda scuffed no? use ast->active? and next_node()??
-int generate_code(AST *ast) {  // = main
+/********************** MAIN ***************************/
+int generate_code(AST *ast){
     ast->active = ast->root;
     
     generate_initial_values();
 
     generate_code_for_line(ast->active, ast); // starts the generation
     printf("POPFRAME\n");
-    print("RETURN\n");
+    printf("RETURN\n");
     return 0; // or exit(0)
 }
 
 
-// Loop this until token_type == EOF? - no, this would break for/while recursive call or generate_code_for_line, or no??
 void generate_code_for_line(ASTNode *token_node, AST *ast){
 
-    // Loop Until we reach } or EOF
+    // Loop Until we reach '}' or EOF
     while((strcmp(token_node->token->data, "}") != 0) && token_node->token->type != eof_token){
         token_node = next_node(ast);
 
@@ -112,17 +118,23 @@ void generate_expression(ASTNode *token_node, AST *ast){
     static int bi_operations_counter = 0;
     static int div_counter = 0;
 
+    static int rel_op_counter = 0;
+
     while (strcmp(current_token_data, ";") != 0 && strcmp(current_token_data,"{") != 0 && strcmp(current_token_data,"|") != 0 && strcmp(current_token_data,")") != 0){
 
-        if (current_token_type == binary_operator_token){
-            
+        if (current_token_type == binary_operator_token || current_token_type == double_equal_token || current_token_type == not_equal_token || current_token_type == relational_operator_token){
             // Pops last 2 operands from stack and check their types
             printf("POPS GF@__type_conver_var1\n");
             printf("POPS GF@__type_conver_var2\n");
             printf("TYPE GF@__type_conver_type1 GF@__type_conver_var1\n");
             printf("TYPE GF@__type_conver_type2 GF@__type_conver_var2\n");
+    
+            printf("JUMPIFEQ convert_push_back%d GF@__type_conver_type1 nil@nil\n", bi_operations_counter);
+            printf("JUMPIFEQ convert_push_back%d GF@__type_conver_type2 nil@nil\n", bi_operations_counter);
+
             // Compares the types
             printf("EQ GF@__type_conver_res GF@__type_conver_type1 GF@__type_conver_type2\n");
+    
             printf("JUMPIFEQ convert_push_back%d GF@__type_conver_res bool@true\n", bi_operations_counter); // if same type, no conversion needed
             
             printf("JUMPIFEQ convert_second%d GF@__type_conver_type1 string@float\n", bi_operations_counter); // if this is true, 1. operand is float, 2. is int
@@ -151,10 +163,6 @@ void generate_expression(ASTNode *token_node, AST *ast){
 
             bi_operations_counter++;
         }
-
-        // TODO: Doesnt handle relation operators as they can have other types than int and float
-        // if (current_token_type != identifier_token){
-        // }
 
         if(strcmp(current_token_data, "<") == 0){
             printf("LTS\n");
@@ -229,21 +237,37 @@ void generate_if_statement(ASTNode *token_node, AST *ast) {
     // example line
     // if (x < y || y > z || z == y && y == 0){
     // if, (, x y < y z > || z y == y 0 == && ||, ), {
-    generate_expression(token_node, ast);
 
-    token_node = ast->active;   // Have to update token_node pointer after generate_expression
-    if (strcmp(token_node->token->data, ")") == 0){ // probably always true
-        token_node = next_node(ast);
+    // CREATEFRAME
+
+    if (strcmp(token_node->next->next->token->data, "|") == 0){
+        
+        printf("MOVE GF@__extcheck_var LF@%s\n", token_node->token->data);
+        printf("TYPE GF@__extcheck_type GF@__extcheck_var\n");
+
+        token_node = next_node(ast);    // skip 'expression'
+        token_node = next_node(ast);    // skip ')'
+        token_node = next_node(ast);    // skip '|'
+        
+        printf("JUMPIFEQ if_else%i GF@__extcheck_type nil@nil\n", current_if_label);
+        
+        printf("DEFVAR LF@%s\n", token_node->token->data);    // isnt temporary... 
+        printf("MOVE LF@%s GF@__extcheck_var\n", token_node->token->data);
+
+        token_node = next_node(ast);    // skip 'y'
+        token_node = next_node(ast);    // skip '|'
     }
+    else{
+        generate_expression(token_node, ast);
 
-    if (strcmp(token_node->token->data, "|") == 0){
-        // Probably need new function generate_null_expression()
+        token_node = ast->active;   // Have to update token_node pointer after generate_expression
+        token_node = next_node(ast);    // skip ')'
+
+        printf("POPS GF@__condition_bool\n"); // pop the condition result into global boolean variable
+    
+        printf("JUMPIFEQ if_then%d GF@__condition_bool bool@true\n", current_if_label);
+        printf("JUMP if_else%i\n", current_if_label);
     }
-
-    printf("POPS GF@__condition_bool\n"); // pop the condition result into global boolean variable
- 
-    printf("JUMPIFEQ if_then%d GF@__condition_bool bool@true\n", current_if_label);
-    printf("JUMP if_else%i\n", current_if_label);
 
     // Then branch
     printf("LABEL if_then%d\n", current_if_label);
@@ -279,23 +303,40 @@ void generate_while_loop(ASTNode *token_node, AST *ast){
     static int while_label_counter = 0;
     int current_while_label = while_label_counter++;
 
-    printf("LABEL while_start%d\n", current_while_label);
+    if (strcmp(token_node->next->next->token->data, "|") == 0){
+        
+        printf("DEFVAR LF@%s\n", token_node->next->next->next->token->data);    // isnt temporary... 
+        
+        printf("LABEL while_start%d\n", current_while_label);
 
-    generate_expression(token_node, ast);
+        printf("MOVE GF@__extcheck_var LF@%s\n", token_node->token->data);
+        printf("TYPE GF@__extcheck_type GF@__extcheck_var\n");
 
-    token_node = ast->active;   // Have to update token_node pointer after generate_expression
-    if (strcmp(token_node->token->data, ")") == 0){ // probably always true
-        token_node = next_node(ast); // <- '{'
+        printf("JUMPIFEQ while_end%i GF@__extcheck_type nil@nil\n", current_while_label);
+        
+        printf("MOVE LF@%s GF@__extcheck_var\n", token_node->token->data);
+
+        token_node = next_node(ast);    // skip 'expression'
+        token_node = next_node(ast);    // skip ')'
+        token_node = next_node(ast);    // skip '|'
+        token_node = next_node(ast);    // skip 'y'
+        token_node = next_node(ast);    // skip '|'
+    }
+    else{
+        printf("LABEL while_start%d\n", current_while_label);
+        generate_expression(token_node, ast);
+
+        token_node = ast->active;   // Have to update token_node pointer after generate_expression
+        token_node = next_node(ast); // <- '{' , skipped ')'
+        
+        // Pop the condition result to global variable
+        printf("POPS GF@__condition_bool\n");
+
+        // if condition is false jump out of loop body
+        printf("JUMPIFEQ while_end%d GF@__condition_bool bool@false\n", current_while_label);
     }
 
-    // Pop the condition result to global variable
-    printf("POPS GF@__condition_bool\n");
-
-    // if condition is false jump out of loop body
-    printf("JUMPIFEQ while_end%d GF@__condition_bool bool@false\n", current_while_label);
-
     // Skip '{' token to start generating the loop body
-    // TODO: |idk| while extention
     token_node = next_node(ast);
 
     generate_code_for_line(token_node, ast);
