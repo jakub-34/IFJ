@@ -4,21 +4,32 @@
 #include "ast2.h"
 #include "codegen.h"
 
+// main(void) int{
+//     int x = 0;
+//     while(x < 3){
+//         if (x == 2){
+//             ifj.print("Two\n");
+//         }
+//         else{
+//         }
+//         x = x + 1;
+//     }
+// }
+
+
+
 /* *******************************************
-DONE:
-
-
 TODO:
-    create+push frame for main??
-    generate_initial_values()
-    
     ifj.readstr - mame dve verze??
     Does it work with function recursion??
     |ifwhile extension|
     pretypovani u relacnich operatoru
 
+    after every generate_expression update token_node
+
 
 MIGHT NEED CHANGING: Issues with global variables
+WHAT NEEDS TO BE EXAMINED: FRAMES, LOOPS, IF STATEMENTS
 
 ******************************************** */
 
@@ -26,18 +37,8 @@ void generate_initial_values(){
     // printf("# - HEADER - #\n");
     printf(".IFJcode24\n");             // Prolog
 
-    // printf("CREATEFRAME\n");
-    // printf("PUSHFRAME\n");
-                                        // + LABEL main???
-
-    // printf("# - ARITHMETIC GLOBAL VARIABLES - #\n");
-    // printf("DEFVAR GF@%%tmp0\n");
-    // printf("DEFVAR GF@%%tmp1\n");
-    // printf("DEFVAR GF@%%tmp2\n");
-
-    // printf("# - BOOL GLOBAL VARIABLES - #\n");
-    printf("DEFVAR GF@__condition_bool\n"); // condition result for if/while statements
-    // printf("DEFVAR GF@%%bool1\n");
+    // condition result for if/while statements
+    printf("DEFVAR GF@__condition_bool\n");
 
     // variables for type check and conversion
     printf("DEFVAR GF@__type_conver_var1\n");
@@ -50,82 +51,70 @@ void generate_initial_values(){
 
     // variables for checking types of operands for division
     printf("DEFVAR GF@__typecheck_var\n");
-    printf("DEFVAR GF@__typecheck_type\n");
-
-    // printf("# - FUNCTION GLOBAL VARIABLES - #\n");
+    printf("DEFVAR GF@__typecheck_type\n");    
     
-    // printf("DEFVAR GF@%%fparam0\n");
-    // printf("DEFVAR GF@%%fparam1\n");
-    // printf("DEFVAR GF@%%fparam2\n");
-    // printf("DEFVAR GF@%%fparam3\n");
-    // printf("DEFVAR GF@%%fparam4\n");
-    // printf("# =============================== #\n");
-    
-    // print langauge built-in functions
+    // Print language built-in functions
     generate_builtin_functions();
+
+
+    // Main Frame
+    printf("CREATEFRAME\n");
+    printf("PUSHFRAME\n");
+    printf("LABEL main\n");
 }
 
 
 // TODO: The beggining kinda scuffed no? use ast->active? and next_node()??
-    // No setting first active node?
-void generate_code(AST *ast) {  // = main
-    ASTNode *line_node = ast->currentLine;
+int generate_code(AST *ast) {  // = main
+    ast->active = ast->root;
     
     generate_initial_values();
 
-    while (line_node->newLine != NULL) { // until there are no new lines
-        generate_code_for_line(line_node, ast); // when we go through the line
-        line_node = line_node->newLine; // go to the left (to the next line)
-    }
+    generate_code_for_line(ast->active, ast); // starts the generation
+    printf("POPFRAME\n");
+    print("RETURN\n");
+    return 0; // or exit(0)
 }
 
 
-// TODO: use ast->active? and next_node()
 // Loop this until token_type == EOF? - no, this would break for/while recursive call or generate_code_for_line, or no??
-void generate_code_for_line(ASTNode *line_node, AST *ast){
-    ASTNode *token_node = line_node; // we are at the first token
+void generate_code_for_line(ASTNode *token_node, AST *ast){
 
-    token_t *first_token = token_node->token;
-
-    // skip '}'     
-    if (strcmp(first_token->data, "}") == 0){   // This should probably never be truth
+    // Loop Until we reach } or EOF
+    while((strcmp(token_node->token->data, "}") != 0) && token_node->token->type != eof_token){
         token_node = next_node(ast);
-        first_token = token_node->token;
-    }
 
-    if (strcmp(first_token->data, "var") == 0 || strcmp(first_token->data, "const") == 0){
-        generate_variable_declaration(token_node, ast);
-    }
-    else if (strcmp(first_token->data, "if") == 0){
-        generate_if_statement(token_node, ast);
-    }
-    else if (strcmp(first_token->data, "while") == 0){
-        generate_while_loop(token_node, ast);
-    }
-    else if (strcmp(first_token->data, "pub") == 0){
-        generate_function_definition(token_node, ast);
-    }
-    // else if (first_token->type == eof_token){                    // maybe this to end "generate_code", and remove "while" in "generate_code"
-    //     return;
-    // }
-    else{
-        generate_assignment_or_expression(token_node, ast);
+        if (strcmp(token_node->token->data, "var") == 0 || strcmp(token_node->token->data, "const") == 0){
+            generate_variable_declaration(token_node, ast);
+        }
+        else if (strcmp(token_node->token->data, "if") == 0){
+            generate_if_statement(token_node, ast);
+        }
+        else if (strcmp(token_node->token->data, "while") == 0){
+            generate_while_loop(token_node, ast);
+        }
+        else if (strcmp(token_node->token->data, "pub") == 0){
+            generate_function_definition(token_node, ast);
+        }
+        else{
+            generate_assignment_or_expression(token_node, ast);
+        }
+
+        token_node = ast->active;
     }
 }
 
 
 void generate_expression(ASTNode *token_node, AST *ast){
     char *current_token_data = token_node->token->data;
-    int current_token_type;
+    int current_token_type = token_node->token->type;
 
     static int bi_operations_counter = 0;
     static int div_counter = 0;
 
     while (strcmp(current_token_data, ";") != 0 && strcmp(current_token_data,"{") != 0 && strcmp(current_token_data,"|") != 0 && strcmp(current_token_data,")") != 0){
-        current_token_data = token_node->token->data;
-        current_token_type = token_node->token->type;
 
-        if (current_token_type == binary_operator_token) {
+        if (current_token_type == binary_operator_token){
             
             // Pops last 2 operands from stack and check their types
             printf("POPS GF@__type_conver_var1\n");
@@ -164,7 +153,7 @@ void generate_expression(ASTNode *token_node, AST *ast){
         }
 
         // TODO: Doesnt handle relation operators as they can have other types than int and float
-        // if (current_token_type != identifier_token) {
+        // if (current_token_type != identifier_token){
         // }
 
         if(strcmp(current_token_data, "<") == 0){
@@ -209,17 +198,31 @@ void generate_expression(ASTNode *token_node, AST *ast){
             printf("LABEL __div_end%d\n", div_counter);
             div_counter++;
         }
-        else{ // variables
-            printf("PUSHS LF@%s", token_node->token->data);
+        else if(current_token_type == identifier_token){ // variables
+            printf("PUSHS LF@%s\n", token_node->token->data);
+        }
+        else{
+            if(current_token_type == int_token){
+                printf("PUSHS int@%s\n", current_token_data);
+            }
+            else if(current_token_type == float_token){
+                printf("PUSHS float@%s\n", current_token_data);
+            }
+            else if(current_token_type == null_token){
+                printf("PUSHS nil@nil\n", current_token_data);
+            }
+            // IDK: Else error
         }
         token_node = next_node(ast); // next token
+        current_token_data = token_node->token->data;
+        current_token_type = token_node->token->type;
     }
 }
 
 // TODO: Fix nested if statements
 void generate_if_statement(ASTNode *token_node, AST *ast) {
     token_node = next_node(ast);    // Skip 'if'
-    token_node = next_node(ast);    // skip '(' and go to expression 'x'
+    token_node = next_node(ast);    // skip '(' and go to expression xxx
 
     static int if_label_counter = 0;
     int current_if_label = if_label_counter++;
@@ -237,26 +240,32 @@ void generate_if_statement(ASTNode *token_node, AST *ast) {
         // Probably need new function generate_null_expression()
     }
 
-    printf("POPS GF@__condition_bool"); // pop the condition result into global boolean variable
+    printf("POPS GF@__condition_bool\n"); // pop the condition result into global boolean variable
  
     printf("JUMPIFEQ if_then%d GF@__condition_bool bool@true\n", current_if_label);
     printf("JUMP if_else%i\n", current_if_label);
 
-    // Then branch    
+    // Then branch
     printf("LABEL if_then%d\n", current_if_label);
 
-    while(strcmp(token_node->token->data, "}") != 0){
-        generate_code_for_line(token_node, ast);
-    }
+    token_node = next_node(ast); // Skip '{'
+
+    generate_code_for_line(token_node, ast);
+
+    token_node = ast->active;
+    token_node = next_node(ast);    // skip '}'
+    token_node = next_node(ast);    // skip 'else'
+    token_node = next_node(ast);    // '{'
     
     printf("JUMP if_end%d\n", current_if_label);
 
     // Else branch
     printf("LABEL if_else%d\n", current_if_label);
 
-    while(strcmp(token_node->token->data, "}") != 0){
-        generate_code_for_line(token_node, ast);
-    }
+    generate_code_for_line(token_node, ast);
+
+    token_node = ast->active;
+    token_node = next_node(ast);    // skip '}'
 
     // Skip here after completing then branch
     printf("LABEL if_end%d\n", current_if_label);
@@ -274,20 +283,25 @@ void generate_while_loop(ASTNode *token_node, AST *ast){
 
     generate_expression(token_node, ast);
 
-    // Pop the condition result to global variable
-    printf("POPS GF@__condition_bool");
+    token_node = ast->active;   // Have to update token_node pointer after generate_expression
+    if (strcmp(token_node->token->data, ")") == 0){ // probably always true
+        token_node = next_node(ast); // <- '{'
+    }
 
-    // if condition is false jump to loop body
+    // Pop the condition result to global variable
+    printf("POPS GF@__condition_bool\n");
+
+    // if condition is false jump out of loop body
     printf("JUMPIFEQ while_end%d GF@__condition_bool bool@false\n", current_while_label);
 
     // Skip '{' token to start generating the loop body
     // TODO: |idk| while extention
     token_node = next_node(ast);
 
-    // Loop body until we reach '}'
-    while(strcmp(token_node->token->data, "}") != 0){
-        generate_code_for_line(token_node, ast);
-    }
+    generate_code_for_line(token_node, ast);
+
+    token_node = ast->active;
+    token_node = next_node(ast);
 
     printf("JUMP while_start%d\n", current_while_label);
     printf("LABEL while_end%d\n", current_while_label);
@@ -297,7 +311,7 @@ void generate_while_loop(ASTNode *token_node, AST *ast){
 // const y = foo();
 // var z = x + 5;
 // var a : []u8 = "radfsda";
-void generate_variable_declaration(ASTNode *token_node, AST *ast) {
+void generate_variable_declaration(ASTNode *token_node, AST *ast){
     // Skip 'var' or 'const
     token_node = next_node(ast);    // var_name
 
@@ -329,7 +343,9 @@ void generate_variable_declaration(ASTNode *token_node, AST *ast) {
                 generate_string_assignment(var_name, escaped_expr_temp);
                 free(escaped_expr_temp);
             }
-            generate_expression_assignment(var_name, token_node, ast); // var var_name = <expression>;
+            else {
+                generate_expression_assignment(var_name, token_node, ast); // var var_name = <expression>;
+            }
         }
     // } else { // var var_name;
     //     // Uninitialized variable, dont have to do anything
@@ -341,41 +357,41 @@ void generate_variable_declaration(ASTNode *token_node, AST *ast) {
 // x = someFunction(a, b);
 // someFunction(a, b);
 void generate_assignment_or_expression(ASTNode *token_node, AST *ast){
-    if(token_node->token->type == identifier_token){
-        char *identifier = token_node->token->data; // variable or funciton name
+    char *identifier = token_node->token->data; // variable or function call
 
-        token_node = next_node(ast); // next token
-        
-        if(strcmp(token_node->token->data, "=") == 0){
-            // Variable assignment
-            token_node = next_node(ast); // moving past '=' to R value
+    token_node = next_node(ast); // next token
 
-            if(token_node->token->type == identifier_token){
-                // Possible function call
-                ASTNode *function_call_node = token_node;
-                ASTNode *after_function_node = function_call_node->next; // checking whats function name
-                if(strcmp(after_function_node->token->data, "(") == 0){
-                    // Its a function call
-                    generate_function_call_assignment(identifier, function_call_node, ast);
-                }
-                else{
-                    // Its expression
-                    generate_expression_assignment(identifier, token_node, ast);
-                }
+    if(strcmp(token_node->token->data, "=") == 0){
+        // Variable assignment
+        token_node = next_node(ast); // moving past '=' to R value
+
+        if(token_node->token->type == identifier_token){
+            // Possible function call
+            ASTNode *function_call_node = token_node;
+            ASTNode *after_function_node = function_call_node->next; // checking whats function name
+            if(strcmp(after_function_node->token->data, "(") == 0){
+                // Its a function call
+                generate_function_call_assignment(identifier, function_call_node, ast);
             }
-            else if(token_node->token->type == string_token){   // R value is a string
-                char *escaped_expr_temp = escape_string(token_node->token->data);
-                generate_string_assignment(identifier, escaped_expr_temp);
-                free(escaped_expr_temp);
-            }
-            else{   // R value is an expression
+            else{
+                // Its expression
                 generate_expression_assignment(identifier, token_node, ast);
+                token_node = ast->active;
+                token_node = next_node(ast); // <-  skip ';'
             }
         }
-        else if(strcmp(token_node->token->data, "(") == 0){
-            // Its a function call as a statement
-            generate_function_call(token_node, ast);
+        else if(token_node->token->type == string_token){   // R value is a string
+            char *escaped_expr_temp = escape_string(token_node->token->data);
+            generate_string_assignment(identifier, escaped_expr_temp);
+            free(escaped_expr_temp);
         }
+        else{   // R value is an expression
+            generate_expression_assignment(identifier, token_node, ast);
+        }
+    }
+    else if(strcmp(token_node->token->data, "(") == 0){
+        // Its a function call as a statement
+        generate_function_call(identifier, token_node, ast);
     }
 }
 
@@ -389,7 +405,7 @@ void generate_expression_assignment(char *identifier, ASTNode *token_node, AST *
 
 void generate_function_call_assignment(char *identifier, ASTNode *function_call_node, AST *ast){
     // Generate function call code
-    generate_function_call(function_call_node, ast);
+    generate_function_call(identifier, function_call_node, ast);
 
     // Pop return value from data stack into the identifier
     printf("POPS LF@%s\n", identifier);
@@ -401,16 +417,9 @@ void generate_string_assignment(char *identifier, char *string){
 }
 
 
-void generate_function_call(ASTNode *token_node, AST *ast){
-
-    // Store the function name from the function node token
-    char *function_name_label = token_node->token->data;
-
-    // Skip '(' (hoping that '(' is the next token - ehm SYNTAX ANALYSIS)
-    token_node = next_node(ast);
-
-    // Move to first argument, or ')'
-    token_node = next_node(ast);
+void generate_function_call(char *identifier, ASTNode *token_node, AST *ast){
+    token_node = next_node(ast); // Skip '('
+    token_node = next_node(ast); // Move to first argument, or ')'
 
     printf("CREATEFRAME\n");
 
@@ -447,11 +456,13 @@ void generate_function_call(ASTNode *token_node, AST *ast){
 
         arg_count++;
     }
-
-
+    // token = ')'
+    
     printf("PUSHFRAME\n");
+    printf("CALL %s\n", identifier);
 
-    printf("CALL %s\n", function_name_label);
+    token_node = next_node(ast); // skip ')'
+    token_node = next_node(ast); // skip ';'
 }
 
 // Converts escape sequences to \xyz format
@@ -533,6 +544,8 @@ void generate_function_definition(ASTNode *token_node, AST *ast) {
     // pub fn ID (parametry) <return TYPE> {
     token_node = next_node(ast); // <- '{'
 
+    token_node = next_node(ast); // <- skip '{'
+    
     while(strcmp(token_node->token->data, "return") != 0 && strcmp(token_node->token->data, "}") != 0){
         generate_code_for_line(token_node, ast);                // maybe check this
         token_node = next_node(ast);
@@ -846,17 +859,17 @@ void generate_builtin_functions(){
     printf("MOVE LF@__tmp_string LF@__substring\n");
     printf("CONCAT LF@__substring LF@__tmp_string LF@__tmp_char\n");
 
-    printf("ADD LF@__i LF@__i int@1 \n"); // i++
+    printf("ADD LF@__i LF@__i int@1\n"); // i++
     printf("JUMP ifj_substring_while\n");
 
     // Error label: Return nil
     printf("LABEL ifj_substring_error\n");
     printf("MOVE LF@__retval nil@nil\n");
-    printf("JUMP ifj_substring_end");
+    printf("JUMP ifj_substring_end\n");
 
     printf("LABEL ifj_substring_while_end\n");
-    printf("MOVE LF@__retval LF@__substring");
-    printf("LABEL ifj_substring_end");
+    printf("MOVE LF@__retval LF@__substring\n");
+    printf("LABEL ifj_substring_end\n");
 
     printf("PUSHS LF@__retval\n");
     printf("POPFRAME\n");
