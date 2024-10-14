@@ -68,7 +68,6 @@ token_t* get_token(){
                 }
                 else if (current_char == '\\'){
                     state = multiline_string_check;
-                    append_to_str_buffer(buffer, current_char);
                 }
                 else if (current_char == '/'){
                     state = divide;
@@ -374,7 +373,6 @@ token_t* get_token(){
             case multiline_string_check:
                 if (current_char == '\\'){
                     state = multiline_string;
-                    append_to_str_buffer(buffer, current_char);
                 }
                 else{
                     fprintf(stderr, "lexical error\n");
