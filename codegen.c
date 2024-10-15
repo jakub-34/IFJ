@@ -87,14 +87,14 @@ int generate_code(AST *ast){
 
     printf("POPFRAME\n");
     printf("RETURN\n");
-    return 0; // or exit(0)
+    return 0;
 }
 
 
 void generate_code_for_line(ASTNode *token_node, AST *ast){
 
-    // Loop Until we reach '}' or EOF
-    while((strcmp(token_node->token->data, "}") != 0) && token_node->token->type != eof_token){
+    // Loop Until we reach '}' , "return" or "EOF"
+    while((strcmp(token_node->token->data, "}") != 0) && (strcmp(token_node->token->data, "return") != 0) && token_node->token->type != eof_token){
         token_node = next_node(ast);
 
         if (strcmp(token_node->token->data, "var") == 0 || strcmp(token_node->token->data, "const") == 0){
@@ -545,18 +545,15 @@ char *escape_string(const char *input) {
 // pub fn add(a : i32, b : i32) i32{
 
 void generate_function_definition(ASTNode *token_node, AST *ast) {
-    // Skip 'pub'
-    token_node = node_next(ast); // <- 'fn'
-    // Skip 'fn'
-    token_node = node_next(ast); // <- function name
+
+    token_node = node_next(ast); // skip 'pub'
+    token_node = node_next(ast); // <- function name, skip 'fn'
 
     // LABEL function_name
     printf("LABEL %s\n", token_node->token->data);
 
-    // Skip '('
-    token_node = node_next(ast); // <- '('
-    // Go to first parameter or ')'
-    token_node = node_next(ast); // <- parameter or ')'
+    token_node = node_next(ast); // skip 'function_name'
+    token_node = node_next(ast); // <- parameter or ')', skip '('
 
     // Going through parameters
     int param_idx = 0; // IDK: maybe should be static int?               = if broken - put in static
@@ -583,36 +580,30 @@ void generate_function_definition(ASTNode *token_node, AST *ast) {
         }
     }
 
-    // Return type
-    token_node = node_next(ast); // <- return type
-
     // pub fn ID (parametry) <return TYPE> {
-    token_node = next_node(ast); // <- '{'
-
+    token_node = node_next(ast); // skip ')'
+    token_node = next_node(ast); // <- '{', skip return type
     token_node = next_node(ast); // <- skip '{'
-    
-    while(strcmp(token_node->token->data, "return") != 0 && strcmp(token_node->token->data, "}") != 0){ // TODO: this is broken 99%
-        generate_code_for_line(token_node, ast);                // maybe check this
-        token_node = next_node(ast);
-    }
-    // return;}
+
+    // generate function definition block
+    generate_code_for_line(token_node, ast);
+    token_node = ast->active;
+
+    // "return" or '}'
     generate_function_return(token_node, ast);
 }
 
 void generate_function_return(ASTNode *token_node, AST *ast) {
-    // Skip 'return'
-    token_node = next_node(ast);
+    
+    if (strcmp(token_node->token->data, "}") != 0){ // true if function has return keyword
+        token_node = next_node(ast); // Skip 'return'
 
-    if (token_node == NULL || strcmp(token_node->token->data, ";") == 0) {
-        // Void return
-        printf("POPFRAME\n");
-        printf("RETURN\n");
-        return;
+        if (strcmp(token_node->token->data, ";") != 0) {    // true if there is expression after "return keyword"
+            // Generate code for the return expression
+            generate_expression(token_node, ast);
+        }
     }
 
-    // Generate code for the return expression
-    generate_expression(token_node, ast);
-    
     // The result is on top of the stack
     // No need to do anything else, just call RETURN
     printf("POPFRAME\n");
