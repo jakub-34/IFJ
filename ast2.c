@@ -9,7 +9,7 @@
 AST *createAST() {
     AST *ast = malloc(sizeof(AST));
     if (ast == NULL) {
-       exit(1000);                          // random number, idk (in every exit in this file)
+       exit(99);
     }
     ast->active = NULL;
     ast->currentLine = NULL;
@@ -20,7 +20,7 @@ AST *createAST() {
 void create_node(token_t *token, AST *ast){
     ASTNode *node = malloc(sizeof(ASTNode)); // allocing for node
     if (node == NULL) {
-        exit(1000);
+        exit(99);
     }
     
     node->next = NULL;    // right child
