@@ -29,17 +29,16 @@
 TODO:
     ifj.readstr - mame dve verze??
     Does it work with function recursion??
-    after every generate_expression update token_node
+    prolog correct?
 
-    use Temp frame for if/while temporary variables?
+    use Temp frame for if/while temporary variables? - NO, have to use unique names somehow...
 
-MIGHT NEED CHANGING: Issues with global variables
-WHAT NEEDS TO BE EXAMINED: FRAMES, LOOPS, IF STATEMENTS
+WHAT NEEDS TO BE EXAMINED: LOOPS, IF STATEMENTS
 
 ******************************************** */
 
 void generate_initial_values(){
-    printf(".IFJcode24\n");             // Prolog?
+    printf(".IFJcode24\n");             // Prolog
 
     // condition result for if/while statements
     printf("DEFVAR GF@__condition_bool\n");
@@ -77,7 +76,15 @@ int generate_code(AST *ast){
     
     generate_initial_values();
 
-    generate_code_for_line(ast->active, ast); // starts the generation
+    // Without while, the generation ends after first function definition
+    while (ast->active->token->type != eof_token){
+        generate_code_for_line(ast->active, ast); // starts the generation
+
+        if (ast->active->token->type != eof_token){ // probably always true
+            next_node(ast); // skip '}'
+        }
+    }
+
     printf("POPFRAME\n");
     printf("RETURN\n");
     return 0; // or exit(0)
@@ -134,10 +141,10 @@ void generate_expression(ASTNode *token_node, AST *ast){
 
             // Compares the types
             printf("EQ GF@__type_conver_res GF@__type_conver_type1 GF@__type_conver_type2\n");
-    
-            printf("JUMPIFEQ convert_push_back%d GF@__type_conver_res bool@true\n", bi_operations_counter); // if same type, no conversion needed
-            
-            printf("JUMPIFEQ convert_second%d GF@__type_conver_type1 string@float\n", bi_operations_counter); // if this is true, 1. operand is float, 2. is int
+            // if same type, no conversion needed
+            printf("JUMPIFEQ convert_push_back%d GF@__type_conver_res bool@true\n", bi_operations_counter);
+            // if this is true, 1. operand is float, 2. is int
+            printf("JUMPIFEQ convert_second%d GF@__type_conver_type1 string@float\n", bi_operations_counter);
             
             // Here convert 1.
             printf("PUSHS GF@__type_conver_var2\n");
@@ -154,7 +161,7 @@ void generate_expression(ASTNode *token_node, AST *ast){
 
             printf("JUMP convert_end%d\n", bi_operations_counter);
 
-            // If same operands, just pushes them back
+            // If same type of operands, just pushes them back
             printf("LABEL convert_push_back%d\n", bi_operations_counter);
             printf("PUSHS GF@__type_conver_var2\n");
             printf("PUSHS GF@__type_conver_var1\n");
@@ -234,9 +241,6 @@ void generate_if_statement(ASTNode *token_node, AST *ast) {
 
     static int if_label_counter = 0;
     int current_if_label = if_label_counter++;
-    // example line
-    // if (x < y || y > z || z == y && y == 0){
-    // if, (, x y < y z > || z y == y 0 == && ||, ), {
 
     // CREATEFRAME
 
@@ -251,7 +255,7 @@ void generate_if_statement(ASTNode *token_node, AST *ast) {
         
         printf("JUMPIFEQ if_else%i GF@__extcheck_type nil@nil\n", current_if_label);
         
-        printf("DEFVAR LF@%s\n", token_node->token->data);    // isnt temporary... 
+        printf("DEFVAR LF@%s\n", token_node->token->data);    // TODO: isnt temporary... 
         printf("MOVE LF@%s GF@__extcheck_var\n", token_node->token->data);
 
         token_node = next_node(ast);    // skip 'y'
@@ -305,7 +309,7 @@ void generate_while_loop(ASTNode *token_node, AST *ast){
 
     if (strcmp(token_node->next->next->token->data, "|") == 0){
         
-        printf("DEFVAR LF@%s\n", token_node->next->next->next->token->data);    // isnt temporary... 
+        printf("DEFVAR LF@%s\n", token_node->next->next->next->token->data);    // TODO: isnt temporary... 
         
         printf("LABEL while_start%d\n", current_while_label);
 
@@ -466,7 +470,7 @@ void generate_function_call(char *identifier, ASTNode *token_node, AST *ast){
 
     int arg_count = 0;
     while (strcmp(token_node->token->data, ")") != 0){
-        // generate_expression(token_node, ast);
+
         printf("DEFVAR TF@__arg%d\n", arg_count);
 
         if (token_node->token->type == identifier_token){
@@ -515,7 +519,7 @@ char *escape_string(const char *input) {
     char *escaped = malloc(sizeof(char)*max_len);
     if (!escaped) {
         fprintf(stderr, "Memory allocation failed in escape_string\n");
-        exit(1000);                         // random exit code, mad?
+        exit(99);
     }
 
     size_t j = 0; // Index for escaped string
@@ -587,7 +591,7 @@ void generate_function_definition(ASTNode *token_node, AST *ast) {
 
     token_node = next_node(ast); // <- skip '{'
     
-    while(strcmp(token_node->token->data, "return") != 0 && strcmp(token_node->token->data, "}") != 0){
+    while(strcmp(token_node->token->data, "return") != 0 && strcmp(token_node->token->data, "}") != 0){ // TODO: this is broken 99%
         generate_code_for_line(token_node, ast);                // maybe check this
         token_node = next_node(ast);
     }
@@ -619,21 +623,20 @@ void generate_builtin_functions(){
 // Functions for reading / writing
     // pub fn ifj.readstr() ?[]u8
     
-    // Definice lokálních proměnných
-    printf("DEFVAR LF@__retval\n"); // Načtený řetězec
-    printf("DEFVAR LF@__type\n");   // Typ načtené hodnoty
+    // define local variables
+    printf("DEFVAR LF@__retval\n");
+    printf("DEFVAR LF@__type\n");
 
-    // Načtení vstupu jako string
+    // reads input as string
     printf("READ LF@__retval string\n");
     printf("TYPE LF@__type LF@__retval\n");
 
-    // Kontrola, zda je vstup typu string
+    // checks if input is of type string
     printf("JUMPIFEQ ifj_readstr_end LF@__type string@string\n");
 
-    // Pokud není typu string, nastav návratovou hodnotu na nil
+    // if not a string, set return value as nil
     printf("MOVE LF@__retval nil@nil\n");
 
-    // Vložení načteného řetězce na datový zásobník
     printf("LABEL ifj_readstr_end\n");
 
     printf("PUSHS LF@__retval\n");
