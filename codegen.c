@@ -27,11 +27,14 @@
 
 /* *******************************************
 TODO:
-    ifj.readstr - mame dve verze??
     Does it work with function recursion??
     prolog correct?
 
+    v expressionech checkovat jestli v promennych neni hodnota nil, EXIT pokud je nil, ošetřit dělení nulou, musí být dynamicky
+
     use Temp frame for if/while temporary variables? - NO, have to use unique names somehow...
+        - ke všem definovaným a používaným proměnným přidat číslo zanoření?
+        maybe jebat, prej se to asi nebude moc testovat...
 
 WHAT NEEDS TO BE EXAMINED: LOOPS, IF STATEMENTS
 
@@ -611,32 +614,8 @@ void generate_function_return(ASTNode *token_node, AST *ast) {
 }
 
 void generate_builtin_functions(){
-// Functions for reading / writing
+/************************  Functions for reading/writing  ************************/
     // pub fn ifj.readstr() ?[]u8
-    
-    // define local variables
-    printf("DEFVAR LF@__retval\n");
-    printf("DEFVAR LF@__type\n");
-
-    // reads input as string
-    printf("READ LF@__retval string\n");
-    printf("TYPE LF@__type LF@__retval\n");
-
-    // checks if input is of type string
-    printf("JUMPIFEQ ifj_readstr_end LF@__type string@string\n");
-
-    // if not a string, set return value as nil
-    printf("MOVE LF@__retval nil@nil\n");
-
-    printf("LABEL ifj_readstr_end\n");
-
-    printf("PUSHS LF@__retval\n");
-    printf("POPFRAME\n");
-    printf("RETURN\n\n");
-
-    ///////////////// Function: ifj.readstr WITH HANDLING ESCAPE CHARACTERS HANDLING //////////////////////////
-
-    // TODO: testing - does READ instruction read string with \n ?
 
     printf("LABEL ifj.readstr\n");
     
@@ -679,8 +658,8 @@ void generate_builtin_functions(){
     printf("LABEL ifj_readstr_remove_newline\n");
     // Initialize new string
     printf("MOVE LF@__new_str string@\n");       // Empty string
+    printf("MOVE LF@__len LF@__i\n");     // new length is len - 1
     printf("MOVE LF@__i int@0\n");
-    printf("SUB LF@__len LF@__len int@1\n");     // New length is len - 1
     
     printf("LABEL ifj_readstr_loop\n");
     // Loop condition: if __i >= __len, exit loop
@@ -708,8 +687,8 @@ void generate_builtin_functions(){
     printf("PUSHS LF@__retval\n");
     printf("POPFRAME\n");
     printf("RETURN\n\n");
-    
-    ///////////////////////////////////////////////////////////////////////////////
+
+// **********************************************************
     // pub fn ifj.readi32() ?i32
     printf("LABEL ifj.readi32\n");
 
@@ -727,6 +706,7 @@ void generate_builtin_functions(){
     printf("POPFRAME\n");
     printf("RETURN\n");
 
+// **********************************************************
     // pub fn ifj.readf64() ?f64
     printf("LABEL ifj.readf64\n");
 
@@ -744,8 +724,8 @@ void generate_builtin_functions(){
     printf("POPFRAME\n");
     printf("RETURN\n");
 
-    
-    // pub fn ifj.write(term) void //            IDK
+// **********************************************************
+    // pub fn ifj.write(term) void
     printf("LABEL ifj.write\n");
     printf("DEFVAR LF@__term\n");
     printf("DEFVAR LF@__type\n");
@@ -766,7 +746,7 @@ void generate_builtin_functions(){
     printf("RETURN\n\n");
 
 
-// ---------- Type conversion functions ----------
+/***************************  Type conversion functions  ****************************/
     /// pub fn ifj.i2f(term ∶ i32) f64
     printf("LABEL ifj.i2f\n");
     
@@ -781,6 +761,7 @@ void generate_builtin_functions(){
     printf("POPFRAME\n");
     printf("RETURN\n\n");
 
+// **********************************************************
     // pub fn ifj.f2i(term ∶ f64) i32
     printf("LABEL ifj.f2i\n");
     
@@ -796,7 +777,7 @@ void generate_builtin_functions(){
     printf("RETURN\n\n");
 
 
-// Functions for strings
+/***********************  Functions for strings  *************************/
     // pub fn ifj.string(term) []u8
     printf("LABEL ifj.string\n");
 
@@ -809,7 +790,7 @@ void generate_builtin_functions(){
     printf("POPFRAME\n");
     printf("RETURN\n\n");
 
-
+// **********************************************************
     // pub fn ifj.length(𝑠 : []u8) i32
     printf("LABEL ifj.length\n");
     
@@ -824,6 +805,7 @@ void generate_builtin_functions(){
     printf("POPFRAME\n");
     printf("RETURN\n\n");
 
+// **********************************************************
     // pub fn ifj.concat(𝑠1 : []u8, 𝑠2 : []u8) []u8
     printf("LABEL ifj.concat\n");
     
@@ -840,6 +822,7 @@ void generate_builtin_functions(){
     printf("POPFRAME\n");
     printf("RETURN\n\n");
 
+// **********************************************************
     // pub fn ifj.substring(𝑠 : []u8, 𝑖 : i32, 𝑗 : i32) ?[]u8
     printf("LABEL ifj.substring\n");
 
@@ -910,6 +893,7 @@ void generate_builtin_functions(){
     printf("POPFRAME\n");
     printf("RETURN\n\n");
 
+// **********************************************************
     // pub fn ifj.strcmp(𝑠1 : []u8, 𝑠2 : []u8) i32
     printf("LABEL ifj.strcmp\n");
 
@@ -990,7 +974,7 @@ void generate_builtin_functions(){
     printf("POPFRAME\n");
     printf("RETURN\n\n");
 
-
+// **********************************************************
     // pub fn ifj.ord(𝑠 : []u8, 𝑖 : i32) i32
     printf("LABEL ifj.ord\n");
 
@@ -1030,6 +1014,7 @@ void generate_builtin_functions(){
     printf("POPFRAME\n");
     printf("RETURN\n\n");
 
+// **********************************************************
     // pub fn ifj.chr(𝑖 : i32) []u8
     printf("LABEL ifj.chr\n");
 
