@@ -34,12 +34,14 @@ void ht_init(ht_table_t *table, int table_size);
 ht_item_t *ht_search(ht_table_t *table, char *name);
 
 // Insert new item into table
+// Also checking redefinition sematic error
 void ht_insert(ht_table_t *table, char *name, symtable_type_t type, bool used, int input_parameters);
 
 // Delete item from table
 void ht_delete(ht_table_t *table, char *name);
 
 // Delete all items from table
+// Also checking unused variable semantic error
 void ht_delete_all(ht_table_t *table);
 
 #endif
