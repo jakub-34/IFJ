@@ -1,12 +1,20 @@
 #ifndef HASHTABLE_H
 #define HASHTABLE_H
 
-#include "token.h"
 #include <stdbool.h>
+
+
+typedef enum symtable_type{
+  sym_int_type,
+  sym_float_type,
+  sym_string_type,
+  sym_func_type
+}symtable_type_t;
+
 
 typedef struct ht_item {
   char *name;
-  token_type_t type;
+  symtable_type_t type;
   bool used;
   int input_parameters;
   struct ht_item *next;
@@ -25,11 +33,8 @@ void ht_init(ht_table_t *table, int table_size);
 // Search for item in table
 ht_item_t *ht_search(ht_table_t *table, char *name);
 
-// Return value of item
-float *ht_get(ht_table_t *table, char *name);
-
 // Insert new item into table
-void ht_insert(ht_table_t *table, char *name, token_type_t type);
+void ht_insert(ht_table_t *table, char *name, symtable_type_t type, bool used, int input_parameters);
 
 // Delete item from table
 void ht_delete(ht_table_t *table, char *name);

@@ -3,7 +3,9 @@
 #include <string.h>
 #include <stdbool.h>
 #include "hashtable.h"
-#include "token.h"
+
+
+void ht_resize(ht_table_t *table);
 
 
 // Hash function
@@ -18,6 +20,15 @@ int get_hash(char *key, int table_size) {
 
 // Initialize table
 void ht_init(ht_table_t *table, int table_size) {
+  table->items = (ht_item_t **)malloc(table_size * sizeof(ht_item_t *));
+  if(table->items == NULL){
+    fprintf(stderr, "Error: Allocation failed\n");
+    exit(99);
+  }
+
+  table->size = table_size;
+  table->item_count = 0;
+
   for (int i = 0; i < table_size; i++){
     table->items[i] = NULL;
   }
@@ -29,7 +40,7 @@ ht_item_t *ht_search(ht_table_t *table, char *name) {
   ht_item_t *item = table->items[hash];
 
   while (item != NULL){
-    if (item->name == name){
+    if (strcmp(item->name, name) == 0){
       return item;
     }
     item = item->next;
@@ -38,7 +49,7 @@ ht_item_t *ht_search(ht_table_t *table, char *name) {
 }
 
 // Insert new item into table
-void ht_insert(ht_table_t *table, char *name, token_type_t type) {
+void ht_insert(ht_table_t *table, char *name, symtable_type_t type, bool used, int input_parameters) {
     // Resize table if needed
     if (table->item_count >= table->size){
         ht_resize(table);
@@ -59,6 +70,8 @@ void ht_insert(ht_table_t *table, char *name, token_type_t type) {
   }
   new_item->name = name;
   new_item->type = type;
+  new_item->input_parameters = input_parameters;
+  new_item->used = used;
   int hash = get_hash(name, table->size);
   
   // Add new value into the list
@@ -75,14 +88,6 @@ void ht_insert(ht_table_t *table, char *name, token_type_t type) {
   table->items[hash] = new_item;
 }
 
-// Return value of item
-float *ht_get(ht_table_t *table, char *name) {
-  ht_item_t *item = ht_search(table, name);
-  if (item != NULL){
-    return &item->type;
-  }
-  return NULL;
-}
 
 // Delete item from table
 void ht_delete(ht_table_t *table, char *name) {
@@ -125,7 +130,7 @@ void ht_delete(ht_table_t *table, char *name) {
 
 // Delete all items from table
 void ht_delete_all(ht_table_t *table) {
-  for (unsigned int i = 0; i < table->size; i++){
+  for (int i = 0; i < table->size; i++){
     while (table->items[i] != NULL){
       ht_item_t *item = table->items[i];
       if (item->next != NULL){
@@ -196,7 +201,7 @@ void ht_resize(ht_table_t *table){
     for(int i = 0; i < table->size; i++){
         ht_item_t *item = table->items[i];
         while(item != NULL){
-            ht_insert(&new_table, item->name, item->type);
+            ht_insert(&new_table, item->name, item->type, item->used, item->input_parameters);
             item = item->next;
         }
     }

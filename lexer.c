@@ -8,6 +8,8 @@
 #include "token.h"
 #include "keyword_check.h"
 
+#include "hashtable.h"
+
 
 token_t* create_token(token_type_t type, char* data) {
     token_t* token = (token_t*)malloc(sizeof(token_t));
@@ -628,16 +630,38 @@ token_t* get_token(){
     }
 }
 
-// int main(){
-//     token_t* token;
-//     while ((token = get_token()) != NULL){
-//         if(token->type == eof_token){
-//             break;
-//         }
-// 
-//         printf("Token: %s\n", token->data);
-//         printf("Type: %d\n", token->type);
-//              
-//     }
-//     return 0;
-// }
+int main(){
+    token_t* token;
+    ht_table_t table;
+    ht_init(&table, 2);
+
+    while ((token = get_token()) != NULL){
+
+        if(token->type == eof_token){
+            break;
+        }
+
+        ht_insert(&table, token->data, sym_int_type, false, 0);
+
+    }
+
+    ht_item_t *item = ht_search(&table, "test");
+    if (item != NULL){
+        printf("Item found: %s\n", item->name);
+        printf("Type: %i\n", item->type);
+        printf("Used: %i\n", item->used);
+        printf("Input parameters: %i\n", item->input_parameters);
+        item->used = true;
+        item->input_parameters = 5;
+    }
+    
+    ht_item_t *item2 = ht_search(&table, "test");
+    if (item != NULL){
+        printf("Item found: %s\n", item2->name);
+        printf("Type: %i\n", item2->type);
+        printf("Used: %i\n", item2->used);
+        printf("Input parameters: %i\n", item2->input_parameters);
+    }
+
+    return 0;
+}
