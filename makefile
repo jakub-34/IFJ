@@ -1,7 +1,7 @@
 CC = gcc
 CFLAGS = -Wall -Wextra -pedantic -g
 
-SRCS = lexer.c str_buffer.c keyword_check.c hashtable.c symtable_stack.c
+SRCS = hashtable.c symtable_stack.c symtable.c symtable_test.c
 OBJS = $(SRCS:.c=.o)
 TARGET = symtable_test
 
