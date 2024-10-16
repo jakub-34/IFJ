@@ -134,6 +134,10 @@ void ht_delete_all(ht_table_t *table) {
     while (table->items[i] != NULL){
       ht_item_t *item = table->items[i];
       if (item->next != NULL){
+        if((item->type != sym_func_type) && (item->used == false)){
+          fprintf(stderr, "Unused variable\n");
+          exit(9);
+        }
         ht_item_t *temp = item;
         item = item->next;
         table->items[i] = item;

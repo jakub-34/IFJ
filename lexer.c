@@ -641,9 +641,11 @@ int main(){
             break;
         }
 
-        ht_insert(&table, token->data, sym_int_type, false, 0);
+        ht_insert(&table, token->data, sym_int_type, true, 0);
 
     }
+
+    ht_insert(&table, "gg", sym_int_type, false, 0);
 
     ht_item_t *item = ht_search(&table, "test");
     if (item != NULL){
@@ -662,6 +664,8 @@ int main(){
         printf("Used: %i\n", item2->used);
         printf("Input parameters: %i\n", item2->input_parameters);
     }
+
+    ht_delete_all(&table);
 
     return 0;
 }
