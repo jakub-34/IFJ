@@ -6,6 +6,7 @@
 
 typedef struct sym_stack{
     ht_table_t **table;
+    int size;
     int top_index;
 } sym_stack_t;
 
