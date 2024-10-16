@@ -9,6 +9,7 @@
 #include "keyword_check.h"
 
 #include "hashtable.h"
+#include "symtable_stack.h"
 
 
 token_t* create_token(token_type_t type, char* data) {
@@ -635,6 +636,14 @@ int main(){
     ht_table_t table;
     ht_init(&table, 2);
 
+    ht_table_t table2;
+    ht_init(&table2, 101);
+
+    sym_stack_t stack;
+    sym_stack_init(&stack);
+
+    sym_stack_push(&stack, &table);
+
     while ((token = get_token()) != NULL){
 
         if(token->type == eof_token){
@@ -645,26 +654,33 @@ int main(){
 
     }
 
-    ht_insert(&table, "gg", sym_int_type, false, 0);
 
-    ht_item_t *item = ht_search(&table, "test");
-    if (item != NULL){
-        printf("Item found: %s\n", item->name);
-        printf("Type: %i\n", item->type);
-        printf("Used: %i\n", item->used);
-        printf("Input parameters: %i\n", item->input_parameters);
-        item->used = true;
-        item->input_parameters = 5;
+    sym_stack_push(&stack, &table2);
+    ht_insert(&table2, "ahoj", sym_int_type, true, 0);
+
+    ht_table_t *temp = sym_stack_top(&stack);
+    ht_item_t *item = ht_search(temp, "ahoj");
+    if(item != NULL){
+        printf("Item found\n");
+    }
+    else{
+        printf("Item not found\n");
     }
     
-    ht_item_t *item2 = ht_search(&table, "test");
-    if (item != NULL){
-        printf("Item found: %s\n", item2->name);
-        printf("Type: %i\n", item2->type);
-        printf("Used: %i\n", item2->used);
-        printf("Input parameters: %i\n", item2->input_parameters);
-    }
+    sym_stack_pop(&stack);
 
+    temp = sym_stack_top(&stack);
+    item = ht_search(temp, "test");
+    if(item != NULL){
+        printf("Item found\n");
+    }
+    else{
+        printf("Item not found\n");
+    }
+    
+
+
+    sym_stack_dispose(&stack);
     ht_delete_all(&table);
 
     return 0;
