@@ -2,10 +2,13 @@
 #define HASHTABLE_H
 
 #include "token.h"
+#include <stdbool.h>
 
 typedef struct ht_item {
   char *name;
   token_type_t type;
+  bool used;
+  int input_parameters;
   struct ht_item *next;
 } ht_item_t;
 

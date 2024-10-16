@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 #include "hashtable.h"
 #include "token.h"
 
@@ -46,10 +47,11 @@ void ht_insert(ht_table_t *table, char *name, token_type_t type) {
   // Existing item
   ht_item_t *existing_item = ht_search(table, name);
   if (existing_item != NULL){
-    existing_item->type = type;
-    return;
+    fprintf(stderr, "Redefinition of variable\n");
+    exit(5);
   }
 
+  // New item
   ht_item_t *new_item = (ht_item_t *)malloc(sizeof(struct ht_item));
   if (new_item == NULL){
     fprintf(stderr, "Error: Allocation failed\n");
