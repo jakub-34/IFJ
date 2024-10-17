@@ -9,7 +9,8 @@
 AST *createAST() {
     AST *ast = malloc(sizeof(AST));
     if (ast == NULL) {
-       exit(99);
+        fprintf(stderr, "Error allocating memory for AST\n");
+        exit(99);
     }
     ast->active = NULL;
     ast->currentLine = NULL;
@@ -20,6 +21,7 @@ AST *createAST() {
 void create_node(token_t *token, AST *ast){
     ASTNode *node = malloc(sizeof(ASTNode)); // allocing for node
     if (node == NULL) {
+        fprintf(stderr, "Error allocating memory for ASTNode\n");
         exit(99);
     }
     
