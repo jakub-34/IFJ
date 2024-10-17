@@ -30,7 +30,7 @@ TODO:
     Does it work with function recursion??
     prolog correct?
 
-    v expressionech checkovat jestli v promennych neni hodnota nil, EXIT pokud je nil, ošetřit dělení nulou, musí být dynamicky
+    exit code when one of operands is null??
 
     use Temp frame for if/while temporary variables? - NO, have to use unique names somehow...
         - ke všem definovaným a používaným proměnným přidat číslo zanoření?
@@ -132,13 +132,62 @@ void generate_expression(ASTNode *token_node, AST *ast){
 
     while (strcmp(current_token_data, ";") != 0 && strcmp(current_token_data,"{") != 0 && strcmp(current_token_data,"|") != 0 && strcmp(current_token_data,")") != 0){
 
-        if (current_token_type == binary_operator_token || current_token_type == double_equal_token || current_token_type == not_equal_token || current_token_type == relational_operator_token){
+        if (current_token_type == binary_operator_token || current_token_type == not_equal_token || current_token_type == relational_operator_token){
             // Pops last 2 operands from stack and check their types
             printf("POPS GF@__type_conver_var1\n");
             printf("POPS GF@__type_conver_var2\n");
             printf("TYPE GF@__type_conver_type1 GF@__type_conver_var1\n");
             printf("TYPE GF@__type_conver_type2 GF@__type_conver_var2\n");
     
+            // If one of the operands is of type nill -> exits
+            printf("JUMPIFEQ null_error_exit%d GF@__type_conver_type1 nil@nil\n", bi_operations_counter);
+            printf("JUMPIFEQ null_error_exit%d GF@__type_conver_type2 nil@nil\n", bi_operations_counter);
+
+            // Compares the types
+            printf("EQ GF@__type_conver_res GF@__type_conver_type1 GF@__type_conver_type2\n");
+            // if same type, no conversion needed
+            printf("JUMPIFEQ convert_push_back%d GF@__type_conver_res bool@true\n", bi_operations_counter);
+            // if this is true, 1. operand is float, 2. is int
+            printf("JUMPIFEQ convert_second%d GF@__type_conver_type1 string@float\n", bi_operations_counter);
+            
+            // Here convert 1.
+            printf("PUSHS GF@__type_conver_var2\n");
+            printf("PUSHS GF@__type_conver_var1\n");
+            printf("INT2FLOATS\n");
+
+            printf("JUMP convert_end%d\n", bi_operations_counter);
+
+            // Here convert 2.
+            printf("LABEL convert_second%d\n", bi_operations_counter);
+            printf("PUSHS GF@__type_conver_var2\n");
+            printf("INT2FLOATS\n");
+            printf("PUSHS GF@__type_conver_var1\n");
+
+            printf("JUMP convert_end%d\n", bi_operations_counter);
+
+            // If one of the operands is null -> exits with error
+            printf("LABEL null_error_exit%d\n", bi_operations_counter);
+            printf("EXIT int@49\n");
+
+            // If same types, just push the operands back on to the stack
+            printf("LABEL convert_push_back%d\n", bi_operations_counter);
+            printf("PUSHS GF@__type_conver_var2\n");
+            printf("PUSHS GF@__type_conver_var1\n");
+
+            printf("LABEL convert_end%d\n", bi_operations_counter);
+
+            bi_operations_counter++;
+        }
+        // Works similiar as other operators but have to check for null differently
+        // because (nill == nill) = true
+        if (current_token_type == double_equal_token){
+            // Pops last 2 operands from stack and check their types
+            printf("POPS GF@__type_conver_var1\n");
+            printf("POPS GF@__type_conver_var2\n");
+            printf("TYPE GF@__type_conver_type1 GF@__type_conver_var1\n");
+            printf("TYPE GF@__type_conver_type2 GF@__type_conver_var2\n");
+    
+            // If one of the operands is null, no conversion needed and we can just compare them
             printf("JUMPIFEQ convert_push_back%d GF@__type_conver_type1 nil@nil\n", bi_operations_counter);
             printf("JUMPIFEQ convert_push_back%d GF@__type_conver_type2 nil@nil\n", bi_operations_counter);
 
@@ -205,8 +254,17 @@ void generate_expression(ASTNode *token_node, AST *ast){
             printf("MULS\n");
         }
         else if(strcmp(current_token_data, "/") == 0){
+            // Checks the type of operand on top of stack
+            // We know both operands have to be already same type
             printf("POPS GF@__typecheck_var\n");
             printf("TYPE GF@__typecheck_type GF@__typecheck_var\n");
+
+            // Checks for division by 0
+            printf("JUMPIFNEQS division_continuation%d GF@__typecheck_var int@0\n", div_counter);
+            printf("EXIT int@48\n");
+
+            // Continues here if not dividing by 0
+            printf("LABEL division_continuation%d\n", div_counter);
             printf("PUSHS GF@__typecheck_var\n");
             printf("JUMPIFEQ __div_int%d GF@__typecheck_type string@int\n", div_counter);
             printf("DIVS\n");
