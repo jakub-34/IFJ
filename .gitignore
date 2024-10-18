@@ -5,3 +5,4 @@ gramatika
 lexer.h
 syntax.c
 token.h
+codegenTestFuns
