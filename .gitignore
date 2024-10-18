@@ -1,7 +1,6 @@
 ast
 ast.c
 ast.h
-codegenStolen.c
 gramatika
 lexer.h
 syntax.c
