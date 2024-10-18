@@ -4,57 +4,9 @@
 #include "ast2.h"
 #include "codegen.h"
 
-// pub fn main() int{
-//     int x = 0;
-//     while(x < 3){
-//         if (x == 2){
-//             ifj.write("Two\n");
-//         }
-//         else{
-//         }
-//         x = x + 1;
-//     }
-// }
-
-//         if (x) |y| {
-//             ifj.print("Two\n");
-//              y = x+1;
-//         }
-//         else{
-//         }
-
-/*
-    pub fn main() void{
-        var y : i32 = 0;
-        var x = max(5);
-        var d: f64 = ifj.i2f(8);
-        const s = "Hola\n";
-    }
-
-    pub fn max(m: i32) i32{
-        var z = 12 + 3;
-        if (x) |TEMP| {
-            if (TEMP == 3){
-                z = TEMP;
-            }
-            else{
-                z = x + 12/5; // 12 5 / x +
-            }
-            x = 1;
-            return x;
-        }
-        else{
-            return 1;
-        }
-        return 1;
-    } EOF
-*/
-
-
 
 /* *******************************************
 TODO:
-    Does it work with function recursion??
     prolog correct?
 
     exit code when one of operands is null/when dividing by 0??
@@ -62,13 +14,13 @@ TODO:
     promenne definovane v if/else / while plati v cele funkci
     - maybe jebat, prej se to asi nebude moc testovat...
 
-Functions yet to be tested: 
-    generate_initial_values
+List of all functions: (why? idk, might be useful for something)
     generate_code
+    generate_initial_values
+    generate_builtin_functions
     generate_code_for_line
     generate_expression
     generate_if_statement
-    generate_while_loop
     generate_variable_declaration
     generate_assignment_or_expression
     generate_expression_assignment
@@ -78,7 +30,7 @@ Functions yet to be tested:
     escape_string
     generate_function_definition
     generate_function_return
-    generate_builtin_functions
+    generate_while_loop
 
 ******************************************** */
 
@@ -367,7 +319,7 @@ void generate_if_statement(ASTNode *token_node, AST *ast){
         printf("JUMP if_else%d\n", current_if_label);
     }
 
-    // Then branch
+    // THEN branch
     printf("LABEL if_then%d\n", current_if_label);
 
     token_node = next_node(ast); // Skip '{'
@@ -393,7 +345,7 @@ void generate_if_statement(ASTNode *token_node, AST *ast){
     
     printf("JUMP if_end%d\n", current_if_label);
 
-    // Else branch
+    // ELSE branch
     printf("LABEL if_else%d\n", current_if_label);
 
     generate_code_for_line(token_node, ast);
@@ -416,7 +368,6 @@ void generate_if_statement(ASTNode *token_node, AST *ast){
     printf("LABEL if_end%d\n", current_if_label);
 }
 
-// TODO: FIX nested while loops
 void generate_while_loop(ASTNode *token_node, AST *ast){
     token_node = next_node(ast);    // Skip 'while'
     token_node = next_node(ast);    // Skip '(' and move to condition
@@ -457,13 +408,12 @@ void generate_while_loop(ASTNode *token_node, AST *ast){
         printf("JUMPIFEQ while_end%d GF@__condition_bool bool@false\n", current_while_label);
     }
 
-    // Skip '{' token to start generating the loop body
-    token_node = next_node(ast);
+    token_node = next_node(ast);    // skip '{' and start generating loop body
 
     generate_code_for_line(token_node, ast);
 
     token_node = ast->active;
-    token_node = next_node(ast);
+    token_node = next_node(ast);    // skip '}'
 
     printf("JUMP while_start%d\n", current_while_label);
     printf("LABEL while_end%d\n", current_while_label);
