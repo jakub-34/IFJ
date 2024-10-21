@@ -16,7 +16,7 @@ void new_scope(sym_stack_t *stack, ht_table_t *table){
     sym_stack_push(stack, temp);
 
     ht_table_t new_table;
-    ht_init(&new_table, 2);
+    ht_init(&new_table, 101);
     *table = new_table;
 }
 
