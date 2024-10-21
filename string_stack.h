@@ -31,6 +31,8 @@ void Stack_Dispose(Stack *stack);
 
 int Stack_find(Stack *stack);
 
+char *Stack_rule_str(Stack *stack);
+
 void Stack_insert_str(Stack *stack);
 
 char *Stack_extract_str(Stack *stack);

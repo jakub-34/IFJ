@@ -47,7 +47,6 @@ void Stack_Dispose( Stack *stack ) {
 
 int Stack_less_than(Stack *stack) {
 	for (int stack_idx = stack->topIndex; stack_idx >= 0; stack_idx--) {
-		printf("%d\n",stack_idx);
 		if (!strcmp(stack->string[stack_idx],"<")) {
 			return stack_idx;
 		}
@@ -64,6 +63,26 @@ int Stack_find(Stack *stack) {
 		}
 	}
 	return less_than_idx;
+}
+
+char *Stack_rule_str(Stack *stack) {
+    int stack_idx = Stack_less_than(stack);
+    if (stack_idx == 0) {
+        return NULL;
+    }
+    int length = 0;
+    for (int i = stack_idx; i < stack->topIndex; i++) {
+        length += strlen(stack->string[i]);
+    }
+    char *string = malloc((length + 1) * sizeof(char));
+    if (string == NULL) {
+        return NULL;
+    }
+    string[0] = '\0';
+    for (int i = stack_idx+1; i <= stack->topIndex; i++) {
+        strcat(string, stack->string[i]);
+    }
+    return string;
 }
 
 char *Stack_extract_str(Stack *stack) {
