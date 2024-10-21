@@ -42,7 +42,6 @@ void sym_stack_pop(sym_stack_t *stack){
     if(sym_stack_empty(stack)){
         return;
     }
-    ht_delete_all(stack->table[stack->top_index]);
     stack->top_index--;
 }
 

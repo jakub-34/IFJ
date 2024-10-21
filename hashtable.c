@@ -78,7 +78,6 @@ void ht_insert(ht_table_t *table, char *name, symtable_type_t type, bool used, i
   if (table->items[hash] != NULL){
     new_item->next = table->items[hash];
     table->items[hash] = new_item;
-    table->item_count++;
     return;
   }
 
@@ -86,6 +85,7 @@ void ht_insert(ht_table_t *table, char *name, symtable_type_t type, bool used, i
   // Add new value at the beginning
   new_item->next = NULL;
   table->items[hash] = new_item;
+  table->item_count++;
 }
 
 
@@ -133,8 +133,7 @@ void ht_delete_all(ht_table_t *table) {
   for (int i = 0; i < table->size; i++){
     while (table->items[i] != NULL){
       ht_item_t *item = table->items[i];
-      if (item->next != NULL){
-        if((item->type != sym_func_type) && (item->used == false)){
+      if((item->type != sym_func_type) && (item->used == false)){
           fprintf(stderr, "Unused variable\n");
           exit(9);
         }
@@ -145,11 +144,9 @@ void ht_delete_all(ht_table_t *table) {
         temp = NULL;
         continue;
       }
-      free(item);
-      item = NULL;
       table->items[i] = NULL;
     }
-  }
+    table = NULL;
 }
 
 
@@ -218,4 +215,54 @@ void ht_resize(ht_table_t *table){
     table->items = new_table.items;
     table->size = new_size;
     table->item_count = new_table.item_count;
+}
+
+
+// Copy table item
+ht_item_t *ht_copy_item(ht_item_t *item){
+  if(item == NULL){
+    return NULL;
+  }
+
+  ht_item_t *new_item = (ht_item_t *)malloc(sizeof(struct ht_item));
+  if (new_item == NULL){
+    fprintf(stderr, "Error: Allocation failed\n");
+    exit(99);
+  }
+
+  new_item->name = strdup(item->name);
+  if(new_item->name == NULL){
+    free(new_item);
+    fprintf(stderr, "Error: Allocation failed\n");
+    exit(99);
+  }
+
+  new_item->type = item->type;
+  new_item->used = item->used;
+  new_item->input_parameters = item->input_parameters;
+
+  new_item->next = ht_copy_item(item->next);
+
+  return new_item;
+}
+
+
+// Copy table
+void ht_copy(ht_table_t *old_table, ht_table_t *new_table){
+  new_table->size = old_table->size;
+  new_table->item_count = old_table->item_count;
+  new_table->items = (ht_item_t **)malloc(new_table->size * sizeof(ht_item_t *));
+  if(new_table->items == NULL){
+    fprintf(stderr, "Error: Allocation failed\n");
+    exit(99);
+  }
+
+  for(int i = 0; i < new_table->size; i++){
+    if(old_table->items[i] != NULL){
+      new_table->items[i] = ht_copy_item(old_table->items[i]);
+    }
+    else{
+      new_table->items[i] = NULL;
+    }
+  }
 }

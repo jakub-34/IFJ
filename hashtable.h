@@ -37,6 +37,9 @@ ht_item_t *ht_search(ht_table_t *table, char *name);
 // Also checking redefinition sematic error
 void ht_insert(ht_table_t *table, char *name, symtable_type_t type, bool used, int input_parameters);
 
+// Copy table into new one
+void ht_copy(ht_table_t *old_table, ht_table_t *new_table);
+
 // Delete item from table
 void ht_delete(ht_table_t *table, char *name);
 
