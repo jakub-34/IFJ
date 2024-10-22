@@ -153,7 +153,7 @@ const char *precedence_table[15][15] = {
         
 };
 
-int expression(){
+token_t* expression(){
 
     //initializing 
     token_t *token = get_token();
