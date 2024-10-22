@@ -106,6 +106,33 @@ void process_rule(const char *rule, bts_Stack *stack) {
     }
 }
 
+/**
+ * @brief checking input token
+ * 
+ * @param[in] token input token
+ * @param[in] brackets count
+ * @param[in] output_token output token
+ */
+token_t* check_token(token_t* token, int* brackets, token_t* output_token){
+    if(*brackets != -1){
+        token = get_token();
+        if (strcmp(token->data,"(") == 0){
+            (*brackets)++;
+        }
+        else if (strcmp(token->data,")") == 0){
+            (*brackets)--;
+        }
+    }
+            
+    if(strcmp(token->data, ";") == 0 || *brackets == -1){
+        output_token->data = token->data;
+        output_token->type = token->type;
+        token->data = "$";
+    }
+
+    return token;
+}
+
 //precedence table
 const char *precedence_table[15][15] = {
     {"",     "*",   "/",   "+",   "-",  "==",  "!=",   "<",   ">",   "<=",  ">=",  "(",   ")",   "i", "$"},
@@ -126,10 +153,18 @@ const char *precedence_table[15][15] = {
         
 };
 
-int main(){
+int expression(){
 
     //initializing 
     token_t *token = get_token();
+    int brackets = 0;
+
+    if (strcmp(token->data,"(") == 0){
+        brackets++;
+    }
+    else if (strcmp(token->data,")") == 0){
+        brackets--;
+    }
 
     Stack stack;
     Stack_Init(&stack, 10);
@@ -138,10 +173,14 @@ int main(){
     bts_Stack bts_stack;
     bts_Stack_Init(&bts_stack, 10);
 
+    token_t *output_token;
+    output_token = malloc(sizeof(token_t));
+
 
     while (true) {
         printf("Token_input: %s\n", token->data);
-        
+        printf("%i\n",brackets);
+
         //getting column number in precedence table
         int row;
         int column;
@@ -183,10 +222,8 @@ int main(){
                 Stack_insert_str(&stack);
                 Stack_Push(&stack, token->data, 10);
             }
-            token = get_token();
-            if(token->type == eof_token){
-            token->data = "$";
-        }
+
+            token = check_token(token, &brackets, output_token);
         }
 
         //reduce
@@ -204,10 +241,8 @@ int main(){
             process_rule(rule, &bts_stack);
             Stack_extract_str(&stack);
             Stack_Push(&stack, "E",10);
-            token = get_token();
-            if(token->type == eof_token){
-                token->data = "$";
-            }
+
+            token = check_token(token, &brackets, output_token);
         }
 
         //stack
@@ -219,11 +254,12 @@ int main(){
 
 
     }
-        
+    
+    printf("output data %s\n", output_token->data);
+    printf("output type %i\n", output_token->type);
     printf("end\n");
 
-
-    return 0;
+    return output_token;
 }
 
 
