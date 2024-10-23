@@ -19,7 +19,7 @@ void Stack_Init(Stack *stack, size_t size);
 
 bool Stack_IsEmpty(const Stack *stack);
 
-bool Stack_IsFull(const Stack *stack, size_t size);
+bool Stack_IsFull(const Stack *stack, int size);
 
 char *Stack_Top(const Stack *stack);
 

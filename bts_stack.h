@@ -19,7 +19,7 @@ void bts_Stack_Init(bts_Stack *bts_Stack, size_t size);
 
 bool bts_Stack_IsEmpty(const bts_Stack *bts_Stack);
 
-bool bts_Stack_IsFull(const bts_Stack *bts_Stack, size_t size);
+bool bts_Stack_IsFull(const bts_Stack *bts_Stack, int size);
 
 bst_node_t *bts_Stack_Top(const bts_Stack *bts_Stack);
 

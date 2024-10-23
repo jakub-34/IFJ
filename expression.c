@@ -7,6 +7,7 @@
 #include "./string_stack.h"
 #include "./bts_stack.h"
 #include "./btree.h"
+#include "./expression.h"
 
 
 /**
@@ -153,10 +154,9 @@ const char *precedence_table[15][15] = {
         
 };
 
-token_t* expression(){
+token_t* expression(token_t *token){
 
     //initializing 
-    token_t *token = get_token();
     int brackets = 0;
 
     if (strcmp(token->data,"(") == 0){

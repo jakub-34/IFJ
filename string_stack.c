@@ -11,7 +11,7 @@ bool Stack_IsEmpty(const Stack *stack) {
 	return stack->topIndex == -1;
 }
 
-bool Stack_IsFull(const Stack *stack, size_t size) {
+bool Stack_IsFull(const Stack *stack, int size) {
 	return size == stack->topIndex + 1;
 }
 

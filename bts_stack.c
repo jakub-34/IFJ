@@ -1,5 +1,6 @@
 #include "./bts_stack.h"
 #include <stdlib.h>
+#include <stdbool.h>
 
 
 void bts_Stack_Init(bts_Stack *bts_Stack, size_t size) {
@@ -11,7 +12,7 @@ bool bts_Stack_IsEmpty(const bts_Stack *bts_Stack) {
 	return bts_Stack->topIndex == -1;
 }
 
-bool bts_Stack_IsFull(const bts_Stack *bts_Stack, size_t size) {
+bool bts_Stack_IsFull(const bts_Stack *bts_Stack, int size) {
 	return size == bts_Stack->topIndex + 1;
 }
 
@@ -42,5 +43,5 @@ void bts_Stack_Dispose( bts_Stack *bts_Stack ) {
 	bts_Stack->topIndex = -1;
 	free(bts_Stack->node);
 	bts_Stack->node = NULL;
-	}
+}
 
