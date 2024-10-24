@@ -13,11 +13,6 @@ token_t* param(token_t *token);
 token_t* param_continuation(token_t *token);
 
 
-// <EXPRESSION>
-// TODO
-//void expression(){}
-
-
 // <VARIABLE>
 int variable(token_t *token){
     if(token->type == eof_token){
@@ -161,7 +156,13 @@ token_t *next_variable_continuaton(token_t *token){
     }
 
     // <NEXT_VARIABLE_CONTINUATION> -> <EXPRESSION>
-    token = expression(token);
+    if(token->type == null_token){
+        token = get_token();
+    }
+    else{
+        token = expression(token);
+    }
+
     if(strcmp(token->data, ";") == 0){
         return token;
     }
@@ -212,8 +213,14 @@ token_t *next_id_defining(token_t *token){
     }
 
     // <NEXT_ID_DEFINING> -> <EXPRESSION>
-    token = expression(token);
-    if((token->data, ";") == 0){
+    if(token->type == null_token){
+        token = get_token();
+    }
+    else{
+        token = expression(token);
+    }
+
+    if(strcmp(token->data, ";") == 0){
         return token;
     }
 
@@ -354,7 +361,12 @@ token_t *return_value(token_t *token){
         exit(2);
     }
 
-    token = expression(token);
+    if(token->type == null_token){
+        token = get_token();
+    }
+    else{
+        token = expression(token);
+    }
 
     // <RETURN_VALUE> -> ε
     return token;
@@ -434,7 +446,12 @@ token_t *code_sequence(token_t *token){
             exit(2);
         }
         token = get_token();
-        token = expression(token);
+        if(token->type == null_token){
+            token = get_token();
+        }
+        else{
+            token = expression(token);
+        }
         if(token->type == eof_token || strcmp(token->data, ")") != 0){
             fprintf(stderr, "Syntax error\n");
             exit(2);
@@ -480,7 +497,12 @@ token_t *code_sequence(token_t *token){
             exit(2);
         }
         token = get_token();
-        token = expression(token);
+        if(token->type == null_token){
+            token = get_token();
+        }
+        else{
+            token = expression(token);
+        }
         if(token->type == eof_token || strcmp(token->data, ")") != 0){
             fprintf(stderr, "Syntax error\n");
             exit(2);
@@ -553,7 +575,12 @@ void code(token_t *token){
             exit(2);
         }
         token = get_token();
-        token = expression(token);
+        if(token->type == null_token){
+            token = get_token();
+        }
+        else{
+            token = expression(token);
+        }
         if(token->type == eof_token || strcmp(token->data, ")") != 0){
             fprintf(stderr, "Syntax error\n");
             exit(2);
@@ -599,7 +626,12 @@ void code(token_t *token){
             exit(2);
         }
         token = get_token();
-        token = expression(token);
+        if(token->type == null_token){
+            token = get_token();
+        }
+        else{
+            token = expression(token);
+        }
         if(token->type == eof_token || strcmp(token->data, ")") != 0){
             fprintf(stderr, "Syntax error\n");
             exit(2);
