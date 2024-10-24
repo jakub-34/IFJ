@@ -149,7 +149,7 @@ const char *precedence_table[15][15] = {
     { ">=",  "S",   "S",   "S",   "S",   "S",   "S",   "R",   "R",   "R",   "R",   "S",   "R",   "S", "R"},
     { "(",   "S",   "S",   "S",   "S",   "S",   "S",   "S",   "S",   "S",   "S",   "S",   "=",   "S", " "},
     { ")",   "R",   "R",   "R",   "R",   "R",   "R",   "R",   "R",   "R",   "R",   " ",   "R",   " ", "R"},
-    { "i",   "R",   "R",   "R",   "R",   "R",   "R",   "R",   "R",   "R",   "R",   " ",   "R",   " ", "R"},
+    { "i",   "R",   "R",   "R",   "R",   "R",   "R",   "R",   "R",   "R",   "R",   "O",   "R",   " ", "R"},
     { "$",   "S",   "S",   "S",   "S",   "S",   "S",   "S",   "S",   "S",   "S",   "S",   " ",   "S", " "}
         
 };
@@ -243,6 +243,12 @@ token_t* expression(token_t *token){
             Stack_Push(&stack, "E",10);
 
             token = check_token(token, &brackets, output_token);
+        }
+
+        else if (strcmp(precedence_table[row][column], "O") == 0) {
+            output_token->data = token->data;
+            output_token->type = token->type;
+            break;
         }
 
         //stack
