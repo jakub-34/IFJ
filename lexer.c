@@ -17,6 +17,11 @@ token_t* create_token(token_type_t type, char* data) {
     }
     token->type = type;
     token->data = data;
+
+    // Debug prints
+    // printf("Token data: %s\n", token->data);
+    // printf("Token type: %i\n", token->type);
+
     return token;
 }
 
@@ -37,7 +42,7 @@ token_t* get_token(){
                 if (current_char == EOF){
                     return create_token(eof_token, NULL);
                 }
-                
+
                 if (current_char == '_' || isalpha(current_char)){
                     state = identifier;
                     append_to_str_buffer(buffer, current_char);
@@ -60,11 +65,9 @@ token_t* get_token(){
                 }
                 else if (current_char == '"'){
                     state = string;
-                    append_to_str_buffer(buffer, current_char);
                 }
                 else if (current_char == '\\'){
                     state = multiline_string_check;
-                    append_to_str_buffer(buffer, current_char);
                 }
                 else if (current_char == '/'){
                     state = divide;
@@ -233,7 +236,6 @@ token_t* get_token(){
             //handling string
             case string:
                 if (current_char == '"'){
-                    append_to_str_buffer(buffer, current_char);
                     return create_token(string_token, buffer->string);
                 }
                 else if (current_char == '\\'){
@@ -304,7 +306,6 @@ token_t* get_token(){
 
             case escape_sequence2_end:
                 if (current_char == '"'){
-                    append_to_str_buffer(buffer, current_char);
                     return create_token(string_token, buffer->string);
                 }
                 else if (current_char == '\\'){
@@ -354,7 +355,6 @@ token_t* get_token(){
 
             case escape_sequence3_end:
                  if (current_char == '"'){
-                    append_to_str_buffer(buffer, current_char);
                     return create_token(string_token, buffer->string);
                 }
                 else if (current_char == '\\'){
@@ -373,7 +373,6 @@ token_t* get_token(){
             case multiline_string_check:
                 if (current_char == '\\'){
                     state = multiline_string;
-                    append_to_str_buffer(buffer, current_char);
                 }
                 else{
                     fprintf(stderr, "lexical error\n");
@@ -629,14 +628,16 @@ token_t* get_token(){
     }
 }
 
-int main(){
-    token_t* token;
-    while ((token = get_token()) != NULL) {
-        printf("Token: %s\n", token->data);
-        printf("Type: %d\n", token->type);
-        
-        free(token->data);  
-        free(token);        
-    }
-    return 0;
-}
+// int main(){
+//     token_t* token;
+//     while ((token = get_token()) != NULL){
+//         if(token->type == eof_token){
+//             break;
+//         }
+// 
+//         printf("Token: %s\n", token->data);
+//         printf("Type: %d\n", token->type);
+//              
+//     }
+//     return 0;
+// }
