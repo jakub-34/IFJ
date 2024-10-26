@@ -19,8 +19,8 @@ token_t* create_token(token_type_t type, char* data) {
     token->data = data;
 
     // Debug prints
-    // printf("Token data: %s\n", token->data);
-    // printf("Token type: %i\n", token->type);
+    printf("Token data: %s\n", token->data);
+    printf("Token type: %i\n", token->type);
 
     return token;
 }
@@ -654,7 +654,7 @@ token_t* get_token(){
                 }
                 else{
                     ungetc(current_char, stdin);
-                    return create_token(identifier_token, buffer->string);
+                    return create_token(kw_check(buffer->string), buffer->string);
                 }
                 break;
             
@@ -672,7 +672,7 @@ token_t* get_token(){
                 }
                 else{
                     ungetc(current_char, stdin);
-                    return create_token(identifier_token, buffer->string);
+                    return create_token(kw_check(buffer->string), buffer->string);
                 }
                 break;
 
@@ -686,7 +686,7 @@ token_t* get_token(){
                 }
                 else{
                     ungetc(current_char, stdin);
-                    return create_token(identifier_token, buffer->string);
+                    return create_token(kw_check(buffer->string), buffer->string);
                 }
                 break;
 
@@ -711,7 +711,7 @@ token_t* get_token(){
                 }
                 else{
                     ungetc(current_char, stdin);
-                    return create_token(identifier_token, buffer->string);
+                    return create_token(kw_check(buffer->string), buffer->string);
                 }
                 break;
         }
