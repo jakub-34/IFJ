@@ -2,7 +2,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "ast2.h"
+#include "ast.h"
 
 
 // Creates and initializes AST

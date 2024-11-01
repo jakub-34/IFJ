@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "ast2.h"
+#include "ast.h"
 #include "codegen.h"
 
 
@@ -118,6 +118,7 @@ void generate_expression(ASTNode *token_node, AST *ast){
 
     static int rel_op_counter = 0;
 
+    // idk: "{" and "|" probably unnecessary, if we always have ')' token after expression in conditions
     while (strcmp(current_token_data, ";") != 0 && strcmp(current_token_data,"{") != 0 && strcmp(current_token_data,"|") != 0 && strcmp(current_token_data,")") != 0){
 
         if (current_token_type == binary_operator_token || current_token_type == not_equal_token || current_token_type == relational_operator_token){

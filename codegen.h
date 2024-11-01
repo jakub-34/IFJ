@@ -1,7 +1,7 @@
 #ifndef CODEGEN_H
 #define CODEGEN_H
 
-#include "ast2.h"
+#include "ast.h"
 
 int generate_code(AST *ast);
 
