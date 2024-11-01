@@ -8,7 +8,9 @@
 #include "./bts_stack.h"
 #include "./btree.h"
 #include "./expression.h"
+#include "./ast.h"
 
+void create_postfix(bst_node_t *node, AST *ast);
 
 /**
  * @brief append to binary tree and push to stack
@@ -42,9 +44,9 @@ void bts_append(bts_Stack *stack, char* operation) {
     node->left = left_child;
     node->right = right_child;
 
-    printf("root je %s\n", token->data);
-    printf("lavy koren je %s\n", node->left->value->data);
-    printf("pravy koren je %s\n", node->right->value->data);
+    //printf("root je %s\n", token->data);
+    //printf("lavy koren je %s\n", node->left->value->data);
+    //printf("pravy koren je %s\n", node->right->value->data);
 
     //push new node to stack
     bts_Stack_Push(stack, node, 10); 
@@ -58,52 +60,52 @@ void bts_append(bts_Stack *stack, char* operation) {
  */
 void process_rule(const char *rule, bts_Stack *stack) {
     if (strcmp(rule, "E+E") == 0) {
-        printf("rule: E -> E + E\n");
+        //printf("rule: E -> E + E\n");
         bts_append(stack,  "+");
     } 
     else if (strcmp(rule, "E-E") == 0) {
-        printf("rule: E -> E - E\n");
+        //printf("rule: E -> E - E\n");
         bts_append(stack,  "-");
     } 
     else if (strcmp(rule, "E*E") == 0) {
-        printf("rule: E -> E * E\n");
+        //printf("rule: E -> E * E\n");
         bts_append(stack,  "*");
     } 
     else if (strcmp(rule, "E/E") == 0) {
-        printf("rule: E -> E / E\n");
+        //printf("rule: E -> E / E\n");
         bts_append(stack,  "/");
     } 
     else if (strcmp(rule, "(E)") == 0) {
-        printf("rule: E -> ( E )\n");
+        //printf("rule: E -> ( E )\n");
     } 
     else if (strcmp(rule, "i") == 0) {
-        printf("rule: E -> i\n");
+        //printf("rule: E -> i\n");
     } 
     else if (strcmp(rule, "E==E") == 0) {
-        printf("rule: E -> E == E\n");
+        //printf("rule: E -> E == E\n");
         bts_append(stack,  "==");
     } 
     else if (strcmp(rule, "E!=E") == 0) {
-        printf("rule: E -> E != E\n");
+        //printf("rule: E -> E != E\n");
         bts_append(stack,  "!=");
     } 
     else if (strcmp(rule, "E<E") == 0) {
-        printf("rule: E -> E < E\n");
+        //printf("rule: E -> E < E\n");
         bts_append(stack,  "<");
     } 
     else if (strcmp(rule, "E>E") == 0) {
-        printf("rule: E -> E > E\n");
+        //printf("rule: E -> E > E\n");
         bts_append(stack,  ">");
     } 
     else if (strcmp(rule, "E<=E") == 0) {
-        printf("rule: E -> E <= E\n");
+        //printf("rule: E -> E <= E\n");
         bts_append(stack,  "<=");
     } 
     else if (strcmp(rule, "E>=E") == 0) {
-        printf("rule: E -> E >= E\n");
+        //printf("rule: E -> E >= E\n");
         bts_append(stack,  ">=");
     } else {
-        printf("rule unknown\n");
+        //printf("rule unknown\n");
     }
 }
 
@@ -154,7 +156,7 @@ const char *precedence_table[15][15] = {
         
 };
 
-token_t* expression(token_t *token){
+token_t* expression(token_t *token, AST *ast){
 
     //initializing 
     int brackets = 0;
@@ -178,8 +180,8 @@ token_t* expression(token_t *token){
 
 
     while (true) {
-        printf("Token_input: %s\n", token->data);
-        printf("%i\n",brackets);
+        //printf("Token_input: %s\n", token->data);
+        //printf("%i\n",brackets);
 
         //getting column number in precedence table
         int row;
@@ -198,7 +200,7 @@ token_t* expression(token_t *token){
         
         //getting row number in precedence table
         char *topToken = stack.string[Stack_find(&stack)];
-        printf("Token_stack: %s\n", topToken);
+        //printf("Token_stack: %s\n", topToken);
             for (int i = 0; i < 15; i++) {
                 if (strcmp(topToken, precedence_table[0][i]) == 0) {
                 row = i;
@@ -252,21 +254,31 @@ token_t* expression(token_t *token){
         }
 
         //stack
-        printf("%s \n", precedence_table[row][column]);        
+        /*printf("%s \n", precedence_table[row][column]);        
         for(int i = 0; i <= stack.topIndex; i++){
             printf("%s ", stack.string[i]);
         }      
-        printf("\n");
+        printf("\n");*/
 
 
     }
     
-    printf("output data %s\n", output_token->data);
-    printf("output type %i\n", output_token->type);
-    printf("end\n");
-
+    //printf("output data %s\n", output_token->data);
+    //printf("output type %i\n", output_token->type);
+    //printf("end\n");
+    //tu 
+    bst_node_t *parent = bts_Stack_Top(&bts_stack); 
+    bts_Stack_Pop(&bts_stack);
+    create_postfix(parent, ast);
+    
     return output_token;
 }
 
 
-
+void create_postfix(bst_node_t *node, AST *ast){
+    if (node != NULL){
+        create_postfix(node->left, ast);
+        create_postfix(node->right, ast);
+        create_node(node->value, ast);
+    }
+}

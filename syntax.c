@@ -3,16 +3,14 @@
 #include <string.h>
 #include "lexer.h"
 #include "token.h"
-#include "expression.h"
-#include "ast.h"
-#include "codegen.h"
+// #include "expression.h"
 
 
 // needed declarations
-token_t* in_param(token_t *token,  AST *ast);
-token_t* in_param_continuation(token_t *token,  AST *ast);
-token_t* param(token_t *token,  AST *ast);
-token_t* param_continuation(token_t *token, AST *ast);
+token_t* in_param(token_t *token);
+token_t* in_param_continuation(token_t *token);
+token_t* param(token_t *token);
+token_t* param_continuation(token_t *token);
 
 
 // <VARIABLE>
@@ -87,7 +85,7 @@ int term(token_t *token){
 
 // <IN_PARAM_CONTINUATION>
 // !!! don't call get_token() after this function !!!
-token_t *in_param_continuation(token_t *token, AST *ast){
+token_t *in_param_continuation(token_t *token){
     if(token->type == eof_token){
         fprintf(stderr, "Syntax error 5\n");
         exit(2);
@@ -96,8 +94,7 @@ token_t *in_param_continuation(token_t *token, AST *ast){
     // <IN_PARAM_CONTINUATION> -> , <IN_PARAM>
     if(strcmp(token->data, ",") == 0){
         token = get_token();
-        create_node(token, ast);
-        token = in_param(token, ast);
+        token = in_param(token);
         return token;
     }
 
@@ -108,7 +105,7 @@ token_t *in_param_continuation(token_t *token, AST *ast){
 
 // <IN_PARAM>
 // !!! don't call get_token() after this function !!!
-token_t *in_param(token_t *token, AST *ast){
+token_t *in_param(token_t *token){
     if(token->type == eof_token){
         fprintf(stderr, "Syntax error 6\n");
         exit(2);
@@ -117,16 +114,14 @@ token_t *in_param(token_t *token, AST *ast){
     // <IN_PARAM> -> ID <IN_PARAM_CONTINUATION>
     if(token->type == identifier_token){
         token = get_token();
-        create_node(token, ast);
-        token = in_param_continuation(token, ast);
+        token = in_param_continuation(token);
         return token;
     }
 
     // <IN_PARAM> -> <TERM> <IN_PARAM_CONTINUATION>
     if(term(token) == 0){
         token = get_token();
-        create_node(token, ast);
-        token = in_param_continuation(token, ast);
+        token = in_param_continuation(token);
         return token;
     }
 
@@ -136,7 +131,7 @@ token_t *in_param(token_t *token, AST *ast){
 
 
 // <NEXT_VARIABLE_CONTINUATION>
-token_t *next_variable_continuaton(token_t *token, AST *ast){
+token_t *next_variable_continuaton(token_t *token){
     if(token->type == eof_token){
         fprintf(stderr, "Syntax error 7\n");
         exit(2);
@@ -145,20 +140,17 @@ token_t *next_variable_continuaton(token_t *token, AST *ast){
     // <NEXT_VARIABLE_CONTINUATION> -> ID ( <IN_PARAM> )
     if(token->type == identifier_token){
         token = get_token();
-        create_node(token, ast);
         if(token->type == eof_token || strcmp(token->data, "(") != 0){
             fprintf(stderr, "Syntax error 8\n");
             exit(2);
         }
         token = get_token();
-        create_node(token, ast);
-        token = in_param(token, ast);
+        token = in_param(token);
         if(token->type == eof_token || strcmp(token->data, ")") != 0){
             fprintf(stderr, "Syntax error 9\n");
             exit(2);
         }
         token = get_token();
-        create_node(token, ast);
         return token;
 
     }
@@ -166,11 +158,9 @@ token_t *next_variable_continuaton(token_t *token, AST *ast){
     // <NEXT_VARIABLE_CONTINUATION> -> <EXPRESSION>
     if(token->type == null_token){
         token = get_token();
-        create_node(token, ast);
     }
     else{
-        token = expression(token, ast);
-        create_node(token, ast);
+        token = expression(token);
     }
 
     if(strcmp(token->data, ";") == 0){
@@ -183,7 +173,7 @@ token_t *next_variable_continuaton(token_t *token, AST *ast){
 
 
 // <VARIABLE_CONTINUATION>
-token_t *variable_continuation(token_t *token, AST *ast){
+token_t *variable_continuation(token_t *token){
     if(token->type == eof_token){
         fprintf(stderr, "Syntax error 11\n");
         exit(2);
@@ -192,25 +182,21 @@ token_t *variable_continuation(token_t *token, AST *ast){
     // <VARIABLE_CONTINUATION> -> : <TYPE> = <NEXT_VARIABLE_CONTINUATION>
     if(strcmp(token->data, ":") == 0){
         token = get_token();
-        create_node(token, ast);
         type(token);
         token = get_token();
-        create_node(token, ast);
         if(token->type == eof_token || strcmp(token->data, "=") != 0){
             fprintf(stderr, "Syntax error 12\n");
             exit(2);
         }
         token = get_token();
-        create_node(token, ast);
-        token = next_variable_continuaton(token, ast);
+        token = next_variable_continuaton(token);
         return token;
     }
 
     // <VARIABLE_CONTINUATION> -> = <NEXT_VARIABLE_CONTINUATION>
     if(strcmp(token->data, "=") == 0){
         token = get_token();
-        create_node(token, ast);
-        token = next_variable_continuaton(token, ast);
+        token = next_variable_continuaton(token);
         return token;
     }
 
@@ -220,7 +206,7 @@ token_t *variable_continuation(token_t *token, AST *ast){
 
 
 // <NEXT_ID_DEFINING>
-token_t *next_id_defining(token_t *token, AST *ast){
+token_t *next_id_defining(token_t *token){
     if(token->type == eof_token){
         fprintf(stderr, "Syntax error 14\n");
         exit(2);
@@ -229,11 +215,9 @@ token_t *next_id_defining(token_t *token, AST *ast){
     // <NEXT_ID_DEFINING> -> <EXPRESSION>
     if(token->type == null_token){
         token = get_token();
-        create_node(token, ast);
     }
     else{
-        token = expression(token, ast);
-        create_node(token, ast);
+        token = expression(token);
     }
 
     if(strcmp(token->data, ";") == 0){
@@ -243,14 +227,12 @@ token_t *next_id_defining(token_t *token, AST *ast){
     // <NEXT_ID_DEFINING> -> ID ( <IN_PARAM> )
     if(strcmp(token->data, "(") == 0){
         token = get_token();
-        create_node(token, ast);
-        token = in_param(token, ast);
+        token = in_param(token);
         if(token->type == eof_token || strcmp(token->data, ")") != 0){
             fprintf(stderr, "Syntax error 15\n");
             exit(2);
         }
         token = get_token();
-        create_node(token, ast);
         return token;
     }
 
@@ -261,7 +243,7 @@ token_t *next_id_defining(token_t *token, AST *ast){
 
 
 // <ID_DEFINING>
-token_t *id_defining(token_t *token, AST *ast){
+token_t *id_defining(token_t *token){
     if(token->type == eof_token){
         fprintf(stderr, "Syntax error 17\n");
         exit(2);
@@ -270,22 +252,19 @@ token_t *id_defining(token_t *token, AST *ast){
     // <ID_DEFINING> -> = <NEXT_ID_DEFINING>
     if(strcmp(token->data, "=") == 0){
         token = get_token();
-        create_node(token, ast);
-        token = next_id_defining(token, ast);
+        token = next_id_defining(token);
         return token;
     }
 
     // <ID_DEFINING> -> ( <IN_PARAM> )
     if(strcmp(token->data, "(") == 0){
         token = get_token();
-        create_node(token, ast);
-        token = in_param(token, ast);
+        token = in_param(token);
         if(token->type == eof_token || strcmp(token->data, ")") != 0){
             fprintf(stderr, "Syntax error 18\n");
             exit(2);
         }
         token = get_token();
-        create_node(token, ast);
         return token;
     }
 
@@ -296,7 +275,7 @@ token_t *id_defining(token_t *token, AST *ast){
 
 // <WHILE_IF_EXTENSION>
 // !!! don't call get_token() after this function !!!
-token_t *while_if_extension(token_t *token, AST *ast){
+token_t *while_if_extension(token_t *token){
     if(token->type == eof_token){
         fprintf(stderr, "Syntax error 20\n");
         exit(2);
@@ -305,19 +284,16 @@ token_t *while_if_extension(token_t *token, AST *ast){
     // <WHILE_IF_EXTENSION> -> | ID |
     if(strcmp(token->data, "|") == 0){
         token = get_token();
-        create_node(token, ast);
         if(token->type != identifier_token){
             fprintf(stderr, "Syntax error 21\n");
             exit(2);
         }
         token = get_token();
-        create_node(token, ast);
         if(token->type == eof_token || strcmp(token->data, "|") != 0){
             fprintf(stderr, "Syntax error 22\n");
             exit(2);
         }
         token = get_token();
-        create_node(token, ast);
         return token;
     }
 
@@ -328,7 +304,7 @@ token_t *while_if_extension(token_t *token, AST *ast){
 
 // <PARAM_CONTINUATION>
 // !!! don't call get_token() after this function !!!
-token_t *param_continuation(token_t *token, AST *ast){
+token_t *param_continuation(token_t *token){
     if(token->type == eof_token){
         fprintf(stderr, "Syntax error 23\n");
         exit(2);
@@ -337,8 +313,7 @@ token_t *param_continuation(token_t *token, AST *ast){
     // <PARAM_CONTINUATION> -> , <PARAM>
     if(strcmp(token->data, ",") == 0){
         token = get_token();
-        create_node(token, ast);
-        token = param(token, ast);
+        token = param(token);
         return token;
     }
 
@@ -350,7 +325,7 @@ token_t *param_continuation(token_t *token, AST *ast){
 
 // <PARAM>
 // !!! don't call get_token() after this function !!!
-token_t *param(token_t *token, AST *ast){
+token_t *param(token_t *token){
     if(token->type == eof_token){
         fprintf(stderr, "Syntax error 24\n");
         exit(2);
@@ -359,17 +334,14 @@ token_t *param(token_t *token, AST *ast){
     //<PARAM> -> ID : <TYPE> <PARAM_CONTINUATION>
     if(token->type == identifier_token){
         token = get_token();
-        create_node(token, ast);
         if(token->type == eof_token || strcmp(token->data, ":") != 0){
             fprintf(stderr, "Syntax error 25\n");
             exit(2);
         }
         token = get_token();
-        create_node(token, ast);
         type(token);
         token = get_token();
-        create_node(token, ast);
-        token = param_continuation(token, ast);
+        token = param_continuation(token);
         return token;
     }
 
@@ -380,7 +352,7 @@ token_t *param(token_t *token, AST *ast){
 
 // <RETURN_VALUE>
 // !!! don't call get_token() after this function !!!
-token_t *return_value(token_t *token, AST *ast){
+token_t *return_value(token_t *token){
     if(token->type == eof_token){
         fprintf(stderr, "Syntax error 26\n");
         exit(2);
@@ -388,11 +360,9 @@ token_t *return_value(token_t *token, AST *ast){
 
     if(token->type == null_token){
         token = get_token();
-        create_node(token, ast);
     }
     else{
-        token = expression(token, ast);
-        create_node(token, ast);
+        token = expression(token);
     }
 
     // <RETURN_VALUE> -> ε
@@ -402,7 +372,7 @@ token_t *return_value(token_t *token, AST *ast){
 
 // <FUNC_EXTENSION>
 // !!! don't call get_token() after this function !!!
-token_t *func_extension(token_t *token, AST *ast){
+token_t *func_extension(token_t *token){
     if(token->type == eof_token){
         fprintf(stderr, "Syntax error 27\n");
         exit(2);
@@ -411,14 +381,12 @@ token_t *func_extension(token_t *token, AST *ast){
     // <FUNC_EXTENSION> -> return <RETURN_VALUE>
     if(strcmp(token->data, "return") == 0){
         token = get_token();
-        create_node(token, ast);
-        token = return_value(token, ast);
+        token = return_value(token);
         if(token->type == eof_token || strcmp(token->data, ";") != 0){
             fprintf(stderr, "Syntax error 28\n");
             exit(2);
         }
         token = get_token();
-        create_node(token, ast);
         return token;
     }
 
@@ -429,7 +397,7 @@ token_t *func_extension(token_t *token, AST *ast){
 
 // <CODE_SEQUENCE>
 // !!! don't call get_token() after this function !!!
-token_t *code_sequence(token_t *token, AST *ast){
+token_t *code_sequence(token_t *token){
     if(token->type == eof_token){
         fprintf(stderr, "Syntax error 29\n");
         exit(2);
@@ -438,21 +406,18 @@ token_t *code_sequence(token_t *token, AST *ast){
     // <CODE_SEQUENCE> -> <VARIABLE> ID <VARIABLE_CONTINUATION> ; <CODE_SEQUENCE>
     if(variable(token) == 0){
         token = get_token();
-        create_node(token, ast);
         if(token->type != identifier_token){
             fprintf(stderr, "Syntax error 30\n");
             exit(2);
         }
         token = get_token();
-        create_node(token, ast);
-        token = variable_continuation(token, ast);
+        token = variable_continuation(token);
         if(token->type == eof_token || strcmp(token->data, ";") != 0){
             fprintf(stderr, "Syntax error 31\n");
             exit(2);
         }
         token = get_token();
-        create_node(token, ast);
-        token = code_sequence(token, ast);
+        token = code_sequence(token);
         return token;
     }
 
@@ -460,119 +425,100 @@ token_t *code_sequence(token_t *token, AST *ast){
     // <CODE_SEQUENCE> -> ID <ID_DEFINING> ; <CODE_SEQUENCE>
     if(token->type == identifier_token){
         token = get_token();
-        create_node(token, ast);
-        token = id_defining(token, ast);
+        token = id_defining(token);;
         if(token->type == eof_token || strcmp(token->data, ";") != 0){
             printf("%s\n", token->data);
             fprintf(stderr, "Syntax error 32\n");
             exit(2);
         }
         token = get_token();
-        create_node(token, ast);
-        token = code_sequence(token, ast);
+        token = code_sequence(token);
         return token;
     }
 
     // <CODE_SEQUENCE> -> if ( <EXPRESSION> ) <WHILE_IF_EXTENSION> { <CODE_SEQUENCE> } else { <CODE_SEQUENCE> } <CODE_SEQUENCE>
     if(token->type != eof_token && strcmp(token->data, "if") == 0){
         token = get_token();
-        create_node(token, ast);
         if(token->type == eof_token || strcmp(token->data, "(") != 0){
             fprintf(stderr, "Syntax error 33\n");
             exit(2);
         }
         token = get_token();
-        create_node(token, ast);
         if(token->type == null_token){
             token = get_token();
-            create_node(token, ast);
         }
         else{
-            token = expression(token, ast);
-            create_node(token, ast);
+            token = expression(token);
         }
         if(token->type == eof_token || strcmp(token->data, ")") != 0){
             fprintf(stderr, "Syntax error 34\n");
             exit(2);
         }
         token = get_token();
-        create_node(token, ast);
-        token = while_if_extension(token, ast);
+        token = while_if_extension(token);
         if(token->type == eof_token || strcmp(token->data, "{") != 0){
             fprintf(stderr, "Syntax error 35\n");
             exit(2);
         }
         token = get_token();
-        create_node(token, ast);
-        token = code_sequence(token, ast);
+        token = code_sequence(token);
         if(token->type == eof_token || strcmp(token->data, "}") != 0){
             fprintf(stderr, "Syntax error 36\n");
             exit(2);
         }
         token = get_token();
-        create_node(token, ast);
         if(token->type == eof_token || strcmp(token->data, "else") != 0){
             fprintf(stderr, "Syntax error 37\n");
             exit(2);
         }
         token = get_token();
-        create_node(token, ast);
         if(token->type == eof_token || strcmp(token->data, "{") != 0){
             fprintf(stderr, "Syntax error 38\n");
             exit(2);
         }
         token = get_token();
-        create_node(token, ast);
-        token = code_sequence(token, ast);
+        token = code_sequence(token);
         if(token->type == eof_token || strcmp(token->data, "}") != 0){
             fprintf(stderr, "Syntax error 39\n");
             exit(2);
         }
         token = get_token();
-        create_node(token, ast);
-        token = code_sequence(token, ast);
+        token = code_sequence(token);
         return token;
     }
 
     // <CODE_SEQUENCE> -> while ( <EXPRESSION> ) <WHILE_IF_EXTENSION> { <CODE_SEQUENCE> } <CODE_SEQUENCE>
     if(token->type != eof_token && strcmp(token->data, "while") == 0){
         token = get_token();
-        create_node(token, ast);
         if(token->type == eof_token || strcmp(token->data, "(") != 0){
             fprintf(stderr, "Syntax error 40\n");
             exit(2);
         }
         token = get_token();
-        create_node(token, ast);
         if(token->type == null_token){
             token = get_token();
-            create_node(token, ast);
         }
         else{
-            token = expression(token, ast);
-            create_node(token, ast);
+            token = expression(token);
         }
         if(token->type == eof_token || strcmp(token->data, ")") != 0){
             fprintf(stderr, "Syntax error 41\n");
             exit(2);
         }
         token = get_token();
-        create_node(token, ast);
-        token = while_if_extension(token, ast);
+        token = while_if_extension(token);
         if(token->type == eof_token || strcmp(token->data, "{") != 0){
             fprintf(stderr, "Syntax error 42\n");
             exit(2);
         }
         token = get_token();
-        create_node(token, ast);
-        token = code_sequence(token, ast);
+        token = code_sequence(token);
         if(token->type == eof_token || strcmp(token->data, "}") != 0){
             fprintf(stderr, "Syntax error 43\n");
             exit(2);
         }
         token = get_token();
-        create_node(token, ast);
-        token = code_sequence(token, ast);
+        token = code_sequence(token);
         return token;
     }
 
@@ -582,7 +528,7 @@ token_t *code_sequence(token_t *token, AST *ast){
 
 
 // <CODE>
-void code(token_t *token, AST *ast){
+void code(token_t *token){
     // <CODE> -> EOF
     if(token->type == eof_token){
         return;
@@ -591,189 +537,159 @@ void code(token_t *token, AST *ast){
     // <CODE> -> <VARIABLE> ID <VARIABLE_CONTINUATION> ; <CODE>
     if(variable(token) == 0){
         token = get_token();
-        create_node(token, ast);
         if(token->type != identifier_token){
             fprintf(stderr, "Syntax error 44\n");
             exit(2);
         }
         token = get_token();
-        create_node(token, ast);
-        token = variable_continuation(token, ast);
+        token = variable_continuation(token);
         if(token->type == eof_token || strcmp(token->data, ";") != 0){
             fprintf(stderr, "Syntax error 45\n");
             exit(2);
         }
         token = get_token();
-        create_node(token, ast);
-        code(token, ast);
+        code(token);
         return;
     }
 
     // <CODE> -> ID <ID_DEFINING> ; <CODE>
     if(token->type == identifier_token){
         token = get_token();
-        create_node(token, ast);
-        token = id_defining(token, ast);
+        token = id_defining(token);
         if(token->type == eof_token || strcmp(token->data, ";") != 0){
             fprintf(stderr, "Syntax error 46\n");
             exit(2);
         }
         token = get_token();
-        create_node(token, ast);
-        code(token, ast);
+        code(token);
         return;
     }
 
     // <CODE> -> if ( <EXPRESSION> ) <WHILE_IF_EXTENSION> { <CODE_SEQUENCE> } else { <CODE_SEQUENCE> } <CODE>
     if(token->type != eof_token && strcmp(token->data, "if") == 0){
         token = get_token();
-        create_node(token, ast);
         if(token->type == eof_token || strcmp(token->data, "(") != 0){
             fprintf(stderr, "Syntax error 47\n");
             exit(2);
         }
         token = get_token();
-        create_node(token, ast);
         if(token->type == null_token){
             token = get_token();
-            create_node(token, ast);
         }
         else{
-            token = expression(token, ast);
-            create_node(token, ast);
+            token = expression(token);
         }
         if(token->type == eof_token || strcmp(token->data, ")") != 0){
             fprintf(stderr, "Syntax error 48\n");
             exit(2);
         }
         token = get_token();
-        create_node(token, ast);
-        token = while_if_extension(token, ast);
+        token = while_if_extension(token);
         if(token->type == eof_token || strcmp(token->data, "{") != 0){
             fprintf(stderr, "Syntax error 49\n");
             exit(2);
         }
         token = get_token();
-        create_node(token, ast);
-        token = code_sequence(token, ast);
+        token = code_sequence(token);
         if(token->type == eof_token || strcmp(token->data, "}") != 0){
             fprintf(stderr, "Syntax error 50\n");
             exit(2);
         }
         token = get_token();
-        create_node(token, ast);
         if(token->type == eof_token || strcmp(token->data, "else") != 0){
             fprintf(stderr, "Syntax error 51\n");
             exit(2);
         }
         token = get_token();
-        create_node(token, ast);
         if(token->type == eof_token || strcmp(token->data, "{") != 0){
             fprintf(stderr, "Syntax error 52\n");
             exit(2);
         }
         token = get_token();
-        create_node(token, ast);
-        token = code_sequence(token, ast);
+        token = code_sequence(token);
         if(token->type == eof_token || strcmp(token->data, "}") != 0){
             fprintf(stderr, "Syntax error 53\n");
             exit(2);
         }
         token = get_token();
-        create_node(token, ast);
-        code(token, ast);
+        code(token);
         return;
     }
 
     // <CODE> -> while ( <EXPRESSION> ) <WHILE_IF_EXTENSION> { <CODE_SEQUENCE> } <CODE>
     if(token->type != eof_token && strcmp(token->data, "while") == 0){
         token = get_token();
-        create_node(token, ast);
         if(token->type == eof_token || strcmp(token->data, "(") != 0){
             fprintf(stderr, "Syntax error 54\n");
             exit(2);
         }
         token = get_token();
-        create_node(token, ast);
         if(token->type == null_token){
             token = get_token();
-            create_node(token, ast);
         }
         else{
-            token = expression(token, ast);
-            create_node(token, ast);
+            token = expression(token);
         }
         if(token->type == eof_token || strcmp(token->data, ")") != 0){
             fprintf(stderr, "Syntax error 55\n");
             exit(2);
         }
         token = get_token();
-        create_node(token, ast);
-        token = while_if_extension(token, ast);
+        token = while_if_extension(token);
         if(token->type == eof_token || strcmp(token->data, "{") != 0){
             fprintf(stderr, "Syntax error 56\n");
             exit(2);
         }
         token = get_token();
-        create_node(token, ast);
-        token = code_sequence(token, ast);
+        token = code_sequence(token);
         if(token->type == eof_token || strcmp(token->data, "}") != 0){
             fprintf(stderr, "Syntax error 57\n");
             exit(2);
         }
         token = get_token();
-        create_node(token, ast);
-        code(token, ast);
+        code(token);
         return;
     }
 
     // <CODE> -> pub fn ID ( <PARAM> ) <TYPE> { <CODE_SEQUENCE> <FUNC_EXTENSION> } <CODE>
     if(token->type != eof_token && strcmp(token->data, "pub") == 0){
         token = get_token();
-        create_node(token, ast);
         if(token->type == eof_token || strcmp(token->data, "fn") != 0){
             fprintf(stderr, "Syntax error 58\n");
             exit(2);
         }
         token = get_token();
-        create_node(token, ast);
         if(token->type != identifier_token){
             fprintf(stderr, "Syntax error 59\n");
             exit(2);
         }
         token = get_token();
-        create_node(token, ast);
         if(token->type == eof_token || strcmp(token->data, "(") != 0){
             fprintf(stderr, "Syntax error 60\n");
             exit(2);
         }
         token = get_token();
-        create_node(token, ast);
-        token = param(token, ast);
+        token = param(token);
         if(token->type == eof_token || strcmp(token->data, ")") != 0){
             fprintf(stderr, "Syntax error 61\n");
             exit(2);
         }
         token = get_token();
-        create_node(token, ast);
         type(token);
         token = get_token();
-        create_node(token, ast);
         if(token->type == eof_token || strcmp(token->data, "{") != 0){
             fprintf(stderr, "Syntax error 62\n");
             exit(2);
         }
         token = get_token();
-        create_node(token, ast);
-        token = code_sequence(token, ast);
-        token = func_extension(token, ast);
+        token = code_sequence(token);
+        token = func_extension(token);
         if(token->type == eof_token || strcmp(token->data, "}") != 0){
-            fprintf(stderr, "Syntax error 63\n");
+            fprintf(stderr, " 63\n");
             exit(2);
         }
         token = get_token();
-        create_node(token, ast);
-        code(token, ast);
+        code(token);
         return;
     }
 
@@ -783,9 +699,6 @@ void code(token_t *token, AST *ast){
 
 
 int main(){
-    // AST Initialization
-    AST *ast = createAST();
-    
     token_t *token = get_token();
 
     // Check for header
@@ -828,16 +741,11 @@ int main(){
         fprintf(stderr, "Syntax error 72\n");
         exit(2);
     }
-    // First token after prolog
     token = get_token();
-    create_node(token, ast);
 
-    code(token, ast);
+    code(token);
 
-    ast->active = NULL;
-    generate_code(ast);
-
-    // printf("Syntax OK\n");
+    printf("Syntax OK\n");
 
     return 0;
 }

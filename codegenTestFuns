@@ -1,0 +1,76 @@
+/*
+********************************************************
+DISCLAIMER!!!!! - MAY NOT BE 100% SYNTACTICALLY CORRECT
+********************************************************
+
+    pub fn main() int{
+        int x = 0;
+        while(x < 3){
+            if (x == 2){
+                ifj.write("Two\n");
+            }
+            else{
+            }
+            x = x + 1;
+        }
+    }
+
+///////////////////////////
+Tests everything except while and function recursion
+
+    pub fn main() void{
+        var y : i32 = 0;
+        var x = max(5);
+        var d: f64 = ifj.i2f(8);
+        const s = "Hola\n";
+    }
+
+    pub fn max(m: i32) i32{
+        var z = 12 + 3;
+        if (x) |TEMP| {
+            if (TEMP == 3){
+                z = TEMP;
+            }
+            else{
+                z = x + 12/5; // 12 5 / x +
+            }
+            x = 1;
+            return x;
+        }
+        else{
+            return 1;
+        }
+        return 1;
+    } EOF
+
+/////////////////////////////
+Tests nested while
+
+    pub fn main() void{
+        while(x < 5){
+            x = 5;
+            while(x) |yx| {
+                z = yx;
+            }
+        }
+    } EOF
+
+/////////////////////////////
+Recursion test
+
+    pub fn main() void{
+        x = dec(4);
+    }
+
+    pub fn dec(m: i32) i32{
+        var result = 0;
+        if (m < 2){
+            result = 1;
+        }
+        else{
+            result = dec(m-1);
+        }
+        return result;
+    }
+
+*/
