@@ -1,6 +1,6 @@
+
 #ifndef LEXER_H
 #define LEXER_H
-#include <stdio.h>
 #include "token.h"
 
 typedef enum lexer_state {
@@ -18,7 +18,6 @@ typedef enum lexer_state {
     escape_sequence,
     escape_sequence2x,
     escape_sequence2,
-    escape_sequence2_end,
     escape_sequence3u,
     escape_sequence3,
     escape_sequence3_end,
@@ -42,7 +41,13 @@ typedef enum lexer_state {
     import_p,
     import_o,
     import_r,
-    import_end
+    import_end,
+    built_in_function_f,
+    built_in_function_j,
+    built_in_function_dot,
+    built_in_function_dot1,
+    built_in_function,
+    built_in_function_end
 } lexer_state_t;
 
 

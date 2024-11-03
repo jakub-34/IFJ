@@ -19,10 +19,38 @@ token_t* create_token(token_type_t type, char* data) {
     token->data = data;
 
     // Debug prints
-    // printf("Token data: %s\n", token->data);
-    // printf("Token type: %i\n", token->type);
+    //printf("Token data: %s\n", token->data);
+    //printf("Token type: %i\n", token->type);
 
     return token;
+}
+
+char escape_sequence_transformation(char current_char){
+    switch (current_char) {
+        case 'n':
+            current_char = '\n';
+            break;
+        case 'r':
+            current_char = '\r';
+            break;
+        case 't':
+            current_char = '\t';
+            break;
+        case '\\':
+            current_char = '\\';
+            break;
+        case '\'':
+            current_char = '\'';
+            break;
+        case '"':
+            current_char = '"';
+            break;
+        default:
+            fprintf(stderr, "lexical error\n");
+            exit(1);
+            break;
+    }
+    return current_char;
 }
 
 
@@ -30,6 +58,7 @@ token_t* get_token(){
     str_buffer_t* buffer = create_str_buffer();
     lexer_state_t state = start;
     bool multiline = false;
+    char hex_val[3];
     while(true){
         char current_char = getchar();
         //printf("Current char: %c\n", current_char);
@@ -42,8 +71,11 @@ token_t* get_token(){
                 if (current_char == EOF){
                     return create_token(eof_token, NULL);
                 }
-
-                if (current_char == '_' || isalpha(current_char)){
+                else if(current_char == 'i'){
+                    state = built_in_function_f;
+                    append_to_str_buffer(buffer, current_char);
+                }
+                else if (current_char == '_' || isalpha(current_char)){
                     state = identifier;
                     append_to_str_buffer(buffer, current_char);
                 }
@@ -234,13 +266,12 @@ token_t* get_token(){
                 break;
 
             //handling string
-            case string:
+            case string: 
                 if (current_char == '"'){
                     return create_token(string_token, buffer->string);
                 }
                 else if (current_char == '\\'){
                     state = escape_sequence;
-                    //vytvorime novy buffer na escpae sequencie aby sme ich vedeli previest ked skoncia
                 }
                 else if (current_char < 32 || current_char == '\n'){
                     fprintf(stderr, "lexical error\n");
@@ -254,20 +285,21 @@ token_t* get_token(){
             case escape_sequence:
                 if ((current_char == '\'' || current_char == '"' || current_char == 'n' || current_char == 'r' || current_char == 't' || current_char == '\\') && (multiline == false)){
                     state = string;
-                    //koniec sekvencie, treba previest a appendnut do bufferu
+                    current_char = escape_sequence_transformation(current_char);
+                    append_to_str_buffer(buffer, current_char);
                 }
-                if ((current_char == '\'' || current_char == '"' || current_char == 'n' || current_char == 'r' || current_char == 't' || current_char == '\\') && (multiline == true)){
+                else if ((current_char == '\'' || current_char == '"' || current_char == 'n' || current_char == 'r' || current_char == 't' || current_char == '\\') && (multiline == true)){
                     multiline = false;
                     state = multiline_string;
-                    //koniec sekvencie, treba previest a appendnut do bufferu
+                    current_char = escape_sequence_transformation(current_char);
+                    append_to_str_buffer(buffer, current_char);
                 }
                 else if (current_char == 'x'){
                     state = escape_sequence2x;
-                    //sequence buffer
                 }
                 else if (current_char == 'u'){
                     state = escape_sequence3u;
-                    //sequence buffer
+                    append_to_str_buffer(buffer, current_char);
                 }
                 else {
                     fprintf(stderr, "lexical error\n");
@@ -278,7 +310,7 @@ token_t* get_token(){
             case escape_sequence2x:
                 if (isdigit(current_char) || (current_char >= 'a' && current_char <= 'f') || (current_char >= 'A' && current_char <= 'F')){
                     state = escape_sequence2;
-                    //sequence buffer
+                    hex_val[0] = current_char;
                 }
                 else {
                     fprintf(stderr, "lexical error\n");
@@ -290,32 +322,19 @@ token_t* get_token(){
                 if ((isdigit(current_char) || (current_char >= 'a' && current_char <= 'f') || (current_char >= 'A' && current_char <= 'F')) && (multiline == true)){
                     multiline = false;
                     state = multiline_string;
-                    //sequence buffer 
-                    //preved sekvenciu
+                    hex_val[1] = current_char;
+                    int ascii_value = (int)strtol(hex_val, NULL, 16);
+                    current_char = (char)ascii_value;
+                    append_to_str_buffer(buffer, current_char);
                 }
                 else if ((isdigit(current_char) || (current_char >= 'a' && current_char <= 'f') || (current_char >= 'A' && current_char <= 'F')) && (multiline == false)){
-                    state = escape_sequence2_end;
-                    //sequence buffer 
-                    //preved sekvenciu
+                    state = string;
+                    hex_val[1] = current_char;
+                    int ascii_value = (int)strtol(hex_val, NULL, 16);
+                    current_char = (char)ascii_value;
+                    append_to_str_buffer(buffer, current_char);
                 }
                 else {
-                    fprintf(stderr, "lexical error\n");
-                    exit(1);
-                }
-                break;
-
-            case escape_sequence2_end:
-                if (current_char == '"'){
-                    return create_token(string_token, buffer->string);
-                }
-                else if (current_char == '\\'){
-                    state = escape_sequence;
-                    //sequence buffer
-                }
-                else if(current_char > 31){
-                    state = string;
-                }
-                else{
                     fprintf(stderr, "lexical error\n");
                     exit(1);
                 }
@@ -324,7 +343,7 @@ token_t* get_token(){
             case escape_sequence3u:
                 if (current_char == '{'){
                     state = escape_sequence3;
-                    //sequence buffer
+                    append_to_str_buffer(buffer, current_char);
                 }
                 else{
                     fprintf(stderr, "lexical error\n");
@@ -334,18 +353,16 @@ token_t* get_token(){
             
             case escape_sequence3:
                 if (isdigit(current_char) || (current_char >= 'a' && current_char <= 'f') || (current_char >= 'A' && current_char <= 'F')){
-                    //sequence buffer
+                    append_to_str_buffer(buffer, current_char);
                 }
                 else if ((current_char == '}') && (multiline == false)){
                     state = escape_sequence3_end;
-                    //sequence buffer
-                    //preved sekvenciu
+                    append_to_str_buffer(buffer, current_char);
                 }
                 else if ((current_char == '}') && (multiline == true)){
                     multiline = false;
                     state = multiline_string;
-                    //sequence buffer
-                    //preved sekvenciu
+                    append_to_str_buffer(buffer, current_char);
                 }
                 else{
                     fprintf(stderr, "lexical error\n");
@@ -359,7 +376,6 @@ token_t* get_token(){
                 }
                 else if (current_char == '\\'){
                     state = escape_sequence;
-                    //sequence buffer
                 }
                 else if(current_char > 31){
                     state = string;
@@ -384,13 +400,21 @@ token_t* get_token(){
                 if (current_char == '\n'){
                     state = multiline_string_end;
                 }
+                else if (current_char == '\r'){
+                    current_char = getchar();
+                    if (current_char == '\n'){
+                        state = multiline_string_end;
+                    }
+                }
                 else if (current_char == '\\'){
                     multiline = true;
                     state = escape_sequence;
-                    //sequence buffer
                 }
                 else if (current_char > 31){
                     append_to_str_buffer(buffer, current_char);
+                }
+                else if (current_char ==  EOF){
+                    return create_token(string_token, buffer->string);
                 }
                 else{
                     fprintf(stderr, "lexical error\n");
@@ -623,18 +647,104 @@ token_t* get_token(){
                     exit(1);
                 }
                 break;
+
+            //handling built-in functions
+            case built_in_function_f:
+                if (current_char == 'f'){
+                    state = built_in_function_j;
+                    append_to_str_buffer(buffer, current_char);
+                }
+                else if (current_char == '_' || isalpha(current_char) || isdigit(current_char)){
+                    state = identifier;
+                    append_to_str_buffer(buffer, current_char);
+                }
+                else{
+                    fprintf(stderr, "lexical error\n");
+                    exit(1);
+                }
+                break;
             
+            case built_in_function_j:
+                if (current_char == 'j'){
+                    state = built_in_function_dot1;
+                    append_to_str_buffer(buffer, current_char);
+                }
+                else if (current_char == '_' || isalpha(current_char) || isdigit(current_char)){
+                    state = identifier;
+                    append_to_str_buffer(buffer, current_char);
+                }
+                else{
+                    ungetc(current_char, stdin);
+                    return create_token(kw_check(buffer->string), buffer->string);
+                }
+                break;
+            
+            case built_in_function_dot1:
+                if (current_char == '.'){
+                    state = built_in_function;
+                    append_to_str_buffer(buffer, current_char);
+                }
+                else if (current_char == '_' || isalpha(current_char) || isdigit(current_char)){
+                    state = identifier;
+                    append_to_str_buffer(buffer, current_char);
+                }
+                else if (current_char == 9 || current_char == 32 || current_char == '\n' || current_char == '\r'){
+                    state = built_in_function_dot;
+                }
+                else{
+                    ungetc(current_char, stdin);
+                    return create_token(kw_check(buffer->string), buffer->string);
+                }
+                break;
+
+            case built_in_function_dot:
+                if (current_char == '.'){
+                    state = built_in_function;
+                    append_to_str_buffer(buffer, current_char);
+                }
+                else if (current_char == 9 || current_char == 32 || current_char == '\n' || current_char == '\r'){
+                    state = built_in_function_dot;
+                }
+                else{
+                    ungetc(current_char, stdin);
+                    return create_token(kw_check(buffer->string), buffer->string);
+                }
+                break;
+
+            case built_in_function:
+                if (current_char == 9 || current_char == 32 || current_char == '\n' || current_char == '\r'){
+                }
+                else if (current_char == '_' || isalpha(current_char) || isdigit(current_char)){
+                    state = built_in_function_end;
+                    append_to_str_buffer(buffer, current_char);
+                }
+                else{
+                    fprintf(stderr, "lexical error\n");
+                    exit(1);
+                }
+                break;
+
+            case built_in_function_end:
+                if (current_char == '_' || isalpha(current_char) || isdigit(current_char)){
+                    append_to_str_buffer(buffer, current_char);
+                }
+                else if (current_char == 9 || current_char == 32 || current_char == '\n' || current_char == '\r'){
+                }
+                else{
+                    ungetc(current_char, stdin);
+                    return create_token(kw_check(buffer->string), buffer->string);
+                }
+                break;
         }
     }
 }
 
 // int main(){
-//     token_t* token;
+    //     token_t* token;
 //     while ((token = get_token()) != NULL){
-//         if(token->type == eof_token){
-//             break;
+    //         if(token->type == eof_token){
+    //             break;
 //         }
-// 
 //         printf("Token: %s\n", token->data);
 //         printf("Type: %d\n", token->type);
 //              
