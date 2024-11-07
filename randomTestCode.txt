@@ -2,8 +2,8 @@
 DISCLAIMER!!!!! - MAY NOT BE 100% SYNTACTICALLY CORRECT
 ********************************************************
 
-    pub fn main() int{
-        int x = 0;
+    pub fn main() i32 {
+        var x : i32 = 0;
         while(x < 3){
             if (x == 2){
                 ifj.write("Two\n");
