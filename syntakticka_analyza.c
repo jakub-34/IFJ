@@ -463,7 +463,6 @@ token_t *code_sequence(token_t *token, AST *ast){
         create_node(token, ast);
         token = id_defining(token, ast);
         if(token->type == eof_token || strcmp(token->data, ";") != 0){
-            printf("%s\n", token->data);
             fprintf(stderr, "Syntax error 32\n");
             exit(2);
         }

@@ -427,7 +427,6 @@ token_t *code_sequence(token_t *token){
         token = get_token();
         token = id_defining(token);;
         if(token->type == eof_token || strcmp(token->data, ";") != 0){
-            printf("%s\n", token->data);
             fprintf(stderr, "Syntax error 32\n");
             exit(2);
         }
@@ -744,8 +743,6 @@ int main(){
     token = get_token();
 
     code(token);
-
-    printf("Syntax OK\n");
 
     return 0;
 }

@@ -19,8 +19,8 @@ token_t* create_token(token_type_t type, char* data) {
     token->data = data;
 
     // Debug prints
-    printf("Token data: %s\n", token->data);
-    printf("Token type: %i\n", token->type);
+    // printf("Token data: %s\n", token->data);
+    // printf("Token type: %i\n", token->type);
 
     return token;
 }
