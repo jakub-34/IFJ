@@ -727,7 +727,7 @@ void generate_builtin_functions(){
     
     printf("LABEL ifj_readstr_remove_newline\n");
     // Initialize new string
-    printf("MOVE LF@__new_str string@\n");       // Empty string
+    // printf("MOVE LF@__new_str string@\n");       // Empty string
     printf("MOVE LF@__len LF@__i\n");     // new length is len - 1
     printf("MOVE LF@__i int@0\n");
     
@@ -937,7 +937,7 @@ void generate_builtin_functions(){
     printf("JUMPIFEQ ifj_substring_error LF@__cond bool@true\n");
 
     // Empty string init
-    printf("MOVE LF@__substring string@\n");
+    // printf("MOVE LF@__substring string@\n");
 
     // while loop
     printf("LABEL ifj_substring_while\n");
