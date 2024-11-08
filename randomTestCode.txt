@@ -1,6 +1,7 @@
 ********************************************************
 DISCLAIMER!!!!! - MAY NOT BE 100% SYNTACTICALLY CORRECT
 ********************************************************
+    const ifj = @import("ifj24.zig");
 
     pub fn main() i32 {
         var x : i32 = 0;
@@ -26,6 +27,7 @@ Tests everything except while and function recursion
 
     pub fn max(m: i32) i32{
         var z = 12 + 3;
+        var x: ?int32 = 0;
         if (x) |TEMP| {
             if (TEMP == 3){
                 z = TEMP;
@@ -40,34 +42,37 @@ Tests everything except while and function recursion
             return 1;
         }
         return 1;
-    } EOF
+    }
 
 /////////////////////////////
 Tests nested while
 
     pub fn main() void{
+        var x = 0;
         while(x < 5){
             x = 5;
+            var z = 0;
             while(x) |yx| {
                 z = yx;
             }
         }
-    } EOF
+    }
 
 /////////////////////////////
 Recursion test
 
     pub fn main() void{
-        x = dec(4);
+        var x = dec(4);
     }
 
     pub fn dec(m: i32) i32{
-        var result = 0;
+        var result: i32 = 0;
         if (m < 2){
             result = 1;
         }
         else{
-            result = dec(m-1);
+            m = m-1;
+            result = dec(m);
         }
         return result;
     }
