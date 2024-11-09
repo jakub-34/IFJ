@@ -522,6 +522,9 @@ token_t *code_sequence(token_t *token){
         return token;
     }
 
+    // <CODE_SEQUENCE> -> <FUNC_EXTENSION>
+    token = func_extension(token);
+
     // <CODE_SEQUENCE> -> ε
     return token;
 }
@@ -651,7 +654,7 @@ void code(token_t *token){
         return;
     }
 
-    // <CODE> -> pub fn ID ( <PARAM> ) <TYPE> { <CODE_SEQUENCE> <FUNC_EXTENSION> } <CODE>
+    // <CODE> -> pub fn ID ( <PARAM> ) <TYPE> { <CODE_SEQUENCE> } <CODE>
     if(token->type != eof_token && strcmp(token->data, "pub") == 0){
         token = get_token();
         if(token->type == eof_token || strcmp(token->data, "fn") != 0){
@@ -683,7 +686,6 @@ void code(token_t *token){
         }
         token = get_token();
         token = code_sequence(token);
-        token = func_extension(token);
         if(token->type == eof_token || strcmp(token->data, "}") != 0){
             fprintf(stderr, " 63\n");
             exit(2);
