@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <errno.h>
 
 #include "ast.h"
 #include "codegen.h"
@@ -8,8 +9,6 @@
 
 /* **************************************************
 TODO:
-    prolog correct?
-
     exit code when one of operands is null/when dividing by 0?? 57 probably
 
     promenne definovane v if/else / while plati v cele funkci
@@ -58,19 +57,22 @@ void generate_initial_values(){
     // variable for checking if/while extension
     printf("DEFVAR GF@__extcheck_var\n");
     printf("DEFVAR GF@__extcheck_type\n");
+
+    // global variable for throwing away result of a function/expression
+    printf("DEFVAR GF@_\n");
     
-    // Print language built-in functions
-    generate_builtin_functions();
-
-
     // Main Frame
     printf("CREATEFRAME\n");
     printf("PUSHFRAME\n");
+    printf("CALL main\n");
+    printf("EXIT int@0\n");
 }
 
 /********************** MAIN ***************************/
 int generate_code(AST *ast){
     // setbuf(stdout, NULL);
+    // printAST(ast);
+
     ast->active = ast->root;
     
     generate_initial_values();
@@ -81,6 +83,9 @@ int generate_code(AST *ast){
 
         next_node(ast); // skip '}'
     }
+
+    // Print language built-in functions
+    generate_builtin_functions();
 
     return 0;
 }
@@ -129,8 +134,8 @@ void generate_expression(ASTNode *token_node, AST *ast){
             printf("TYPE GF@__type_conver_type2 GF@__type_conver_var2\n");
     
             // If one of the operands is of type nill -> exits
-            printf("JUMPIFEQ null_error_exit%d GF@__type_conver_type1 nil@nil\n", bi_operations_counter);
-            printf("JUMPIFEQ null_error_exit%d GF@__type_conver_type2 nil@nil\n", bi_operations_counter);
+            printf("JUMPIFEQ null_error_exit%d GF@__type_conver_type1 string@nil\n", bi_operations_counter);
+            printf("JUMPIFEQ null_error_exit%d GF@__type_conver_type2 string@nil\n", bi_operations_counter);
 
             // Compares the types
             printf("EQ GF@__type_conver_res GF@__type_conver_type1 GF@__type_conver_type2\n");
@@ -177,8 +182,8 @@ void generate_expression(ASTNode *token_node, AST *ast){
             printf("TYPE GF@__type_conver_type2 GF@__type_conver_var2\n");
     
             // If one of the operands is null, no conversion needed and we can just compare them
-            printf("JUMPIFEQ convert_push_back%d GF@__type_conver_type1 nil@nil\n", bi_operations_counter);
-            printf("JUMPIFEQ convert_push_back%d GF@__type_conver_type2 nil@nil\n", bi_operations_counter);
+            printf("JUMPIFEQ convert_push_back%d GF@__type_conver_type1 string@nil\n", bi_operations_counter);
+            printf("JUMPIFEQ convert_push_back%d GF@__type_conver_type2 string@nil\n", bi_operations_counter);
 
             // Compares the types
             printf("EQ GF@__type_conver_res GF@__type_conver_type1 GF@__type_conver_type2\n");
@@ -271,7 +276,10 @@ void generate_expression(ASTNode *token_node, AST *ast){
                 printf("PUSHS int@%s\n", current_token_data);
             }
             else if(current_token_type == float_token){
-                printf("PUSHS float@%s\n", current_token_data);
+                // Converts string to actual float value
+                char *tmp;
+                double value = strtof(current_token_data, &tmp);
+                printf("PUSHS float@%a\n", value);
             }
             else if(current_token_type == null_token){
                 printf("PUSHS nil@nil\n");
@@ -284,6 +292,7 @@ void generate_expression(ASTNode *token_node, AST *ast){
     }
 }
 
+// IF STATEMENT
 void generate_if_statement(ASTNode *token_node, AST *ast){
     token_node = next_node(ast);    // Skip 'if'
     token_node = next_node(ast);    // skip '(' and go to expression "xxx..."
@@ -296,11 +305,11 @@ void generate_if_statement(ASTNode *token_node, AST *ast){
         printf("MOVE GF@__extcheck_var LF@%s\n", token_node->token->data);
         printf("TYPE GF@__extcheck_type GF@__extcheck_var\n");
 
+        printf("JUMPIFEQ if_else%d GF@__extcheck_type string@nil\n", current_if_label);
+
         token_node = next_node(ast);    // skip 'expression'
         token_node = next_node(ast);    // skip ')'
         token_node = next_node(ast);    // skip '|'
-        
-        printf("JUMPIFEQ if_else%d GF@__extcheck_type nil@nil\n", current_if_label);
         
         printf("DEFVAR LF@%s\n", token_node->token->data);    // TODO: isnt temporary... 
         printf("MOVE LF@%s GF@__extcheck_var\n", token_node->token->data);
@@ -369,6 +378,7 @@ void generate_if_statement(ASTNode *token_node, AST *ast){
     printf("LABEL if_end%d\n", current_if_label);
 }
 
+// WHILE LOOP
 void generate_while_loop(ASTNode *token_node, AST *ast){
     token_node = next_node(ast);    // Skip 'while'
     token_node = next_node(ast);    // Skip '(' and move to condition
@@ -377,17 +387,27 @@ void generate_while_loop(ASTNode *token_node, AST *ast){
     int current_while_label = while_label_counter++;
 
     if (strcmp(token_node->next->next->token->data, "|") == 0){
-        
+
+        // Initial check if the value in condition != null
+        printf("MOVE GF@__extcheck_var LF@%s\n", token_node->token->data);
+        printf("TYPE GF@__extcheck_type GF@__extcheck_var\n");
+        printf("JUMPIFEQ while_end%d GF@__extcheck_type string@nil\n", current_while_label);
+
+
+        // If so, define new variable and move value of the condition into it
         printf("DEFVAR LF@%s\n", token_node->next->next->next->token->data);    // TODO: isnt temporary... 
-        
+        printf("MOVE LF@%s GF@__extcheck_var\n", token_node->next->next->next->token->data);
+
+        // While always returns here when reaching end of its block 
+        // to recheck the condition and update value of the special variable
         printf("LABEL while_start%d\n", current_while_label);
 
         printf("MOVE GF@__extcheck_var LF@%s\n", token_node->token->data);
         printf("TYPE GF@__extcheck_type GF@__extcheck_var\n");
-
-        printf("JUMPIFEQ while_end%d GF@__extcheck_type nil@nil\n", current_while_label);
+        printf("JUMPIFEQ while_end%d GF@__extcheck_type string@nil\n", current_while_label);
         
-        printf("MOVE LF@%s GF@__extcheck_var\n", token_node->token->data);
+        // update value of special var
+        printf("MOVE LF@%s GF@__extcheck_var\n", token_node->next->next->next->token->data);
 
         token_node = next_node(ast);    // skip 'expression'
         token_node = next_node(ast);    // skip ')'
@@ -517,16 +537,28 @@ void generate_expression_assignment(char *identifier, ASTNode *token_node, AST *
     generate_expression(token_node, ast);
 
     // Pop the result into variable
-    printf("POPS LF@%s\n", identifier);
+    if (strcmp(identifier, "_") == 0){
+       printf("POPS GF@_\n"); 
+    }
+    else {
+        printf("POPS LF@%s\n", identifier);
+    }
 }
 
 void generate_function_call_assignment(char *identifier, ASTNode *function_call_node, AST *ast){
     // Generate function call code
     char* function_name = function_call_node->token->data;
+    function_call_node = next_node(ast);
     generate_function_call(function_name, function_call_node->next, ast);
 
-    // Pop return value from data stack into the identifier
-    printf("POPS LF@%s\n", identifier);
+    if (strcmp(identifier, "_") == 0){
+        // Throw away the value
+        printf("POPS GF@_\n"); 
+    }
+    else {
+        // Pop return value from data stack into the identifier
+        printf("POPS LF@%s\n", identifier);
+    }
 }
 
 void generate_string_assignment(char *identifier, char *string){
@@ -687,7 +719,7 @@ void generate_builtin_functions(){
 /************************  Functions for reading/writing  ************************/
     // pub fn ifj.readstr() ?[]u8
 
-    printf("LABEL ifj.readstr\n");
+    printf("LABEL ifj$readstr\n");
     
     // Define local variables
     printf("DEFVAR LF@__retval\n");         // The read string
@@ -720,7 +752,7 @@ void generate_builtin_functions(){
     printf("GETCHAR LF@__char LF@__retval LF@__i\n");
     
     // Compare the last character to '\n'
-    printf("EQ LF@__cmp_res LF@__char string@\\n\n");
+    printf("EQ LF@__cmp_res LF@__char string@\010\n");
     printf("JUMPIFEQ ifj_readstr_remove_newline LF@__cmp_res bool@true\n");
     // If not equal, no need to remove newline
     printf("JUMP ifj_readstr_end\n");
@@ -760,7 +792,7 @@ void generate_builtin_functions(){
 
 // **********************************************************
     // pub fn ifj.readi32() ?i32
-    printf("LABEL ifj.readi32\n");
+    printf("LABEL ifj$readi32\n");
 
     printf("DEFVAR LF@__retval\n");
     printf("DEFVAR LF@__type\n");
@@ -778,7 +810,7 @@ void generate_builtin_functions(){
 
 // **********************************************************
     // pub fn ifj.readf64() ?f64
-    printf("LABEL ifj.readf64\n");
+    printf("LABEL ifj$readf64\n");
 
     printf("DEFVAR LF@__retval\n");
     printf("DEFVAR LF@__type\n");
@@ -796,7 +828,7 @@ void generate_builtin_functions(){
 
 // **********************************************************
     // pub fn ifj.write(term) void
-    printf("LABEL ifj.write\n");
+    printf("LABEL ifj$write\n");
     printf("DEFVAR LF@__term\n");
     printf("DEFVAR LF@__type\n");
 
@@ -809,7 +841,7 @@ void generate_builtin_functions(){
     printf("JUMP ifj_write_end\n");
     
     printf("LABEL ifj_write_nil\n");
-    printf("WRITE string@null\n");
+    printf("WRITE string@nil\n");
 
     printf("LABEL ifj_write_end\n");
     printf("POPFRAME\n");
@@ -818,13 +850,10 @@ void generate_builtin_functions(){
 
 /***************************  Type conversion functions  ****************************/
     /// pub fn ifj.i2f(term ∶ i32) f64
-    printf("LABEL ifj.i2f\n");
-    
-    printf("DEFVAR LF@__term\n");
-    printf("MOVE LF@__term LF@__arg0\n");
+    printf("LABEL ifj$i2f\n");
     
     printf("DEFVAR LF@__retval\n");
-    printf("INT2FLOAT LF@__retval LF@__term\n");
+    printf("INT2FLOAT LF@__retval LF@__arg0\n");
     
     // Push the result onto the data stack
     printf("PUSHS LF@__retval\n");
@@ -833,13 +862,10 @@ void generate_builtin_functions(){
 
 // **********************************************************
     // pub fn ifj.f2i(term ∶ f64) i32
-    printf("LABEL ifj.f2i\n");
-    
-    printf("DEFVAR LF@__term\n");
-    printf("MOVE LF@__term LF@__arg0\n");
+    printf("LABEL ifj$f2i\n");
     
     printf("DEFVAR LF@__retval\n");
-    printf("FLOAT2INT LF@__retval LF@_term\n");
+    printf("FLOAT2INT LF@__retval LF@__arg0\n");
     
     // Push the result onto the data stack
     printf("PUSHS LF@__retval\n");
@@ -849,23 +875,19 @@ void generate_builtin_functions(){
 
 /***********************  Functions for strings  *************************/
     // pub fn ifj.string(term) []u8
-    printf("LABEL ifj.string\n");
+    printf("LABEL ifj$string\n");
 
-    // The parameter is in LF__arg0
-    printf("DEFVAR LF@__term\n");
-    printf("MOVE LF@__term LF@__arg0\n");
-
-    // Push the term onto the data stack (identity function)
-    printf("PUSHS LF@__term\n");
+    // Push the term onto the data stack
+    printf("PUSHS LF@__arg0\n");
     printf("POPFRAME\n");
     printf("RETURN\n\n");
 
 // **********************************************************
     // pub fn ifj.length(𝑠 : []u8) i32
-    printf("LABEL ifj.length\n");
+    printf("LABEL ifj$length\n");
     
     printf("DEFVAR LF@__s\n");
-    printf("MOVE LF@s LF@__arg0\n");
+    printf("MOVE LF@__s LF@__arg0\n");
     
     printf("DEFVAR LF@__retval\n");
     printf("STRLEN LF@__retval LF@__s\n");
@@ -877,7 +899,7 @@ void generate_builtin_functions(){
 
 // **********************************************************
     // pub fn ifj.concat(𝑠1 : []u8, 𝑠2 : []u8) []u8
-    printf("LABEL ifj.concat\n");
+    printf("LABEL ifj$concat\n");
     
     printf("DEFVAR LF@__s1\n");
     printf("DEFVAR LF@__s2\n");
@@ -894,7 +916,7 @@ void generate_builtin_functions(){
 
 // **********************************************************
     // pub fn ifj.substring(𝑠 : []u8, 𝑖 : i32, 𝑗 : i32) ?[]u8
-    printf("LABEL ifj.substring\n");
+    printf("LABEL ifj$substring\n");
 
     // Define local variables
     printf("DEFVAR LF@__s\n");
@@ -965,7 +987,7 @@ void generate_builtin_functions(){
 
 // **********************************************************
     // pub fn ifj.strcmp(𝑠1 : []u8, 𝑠2 : []u8) i32
-    printf("LABEL ifj.strcmp\n");
+    printf("LABEL ifj$strcmp\n");
 
     // Define local variables
     printf("DEFVAR LF@__s1\n");
@@ -1046,7 +1068,7 @@ void generate_builtin_functions(){
 
 // **********************************************************
     // pub fn ifj.ord(𝑠 : []u8, 𝑖 : i32) i32
-    printf("LABEL ifj.ord\n");
+    printf("LABEL ifj$ord\n");
 
     // Define local variables
     printf("DEFVAR LF@__s\n");
@@ -1086,7 +1108,7 @@ void generate_builtin_functions(){
 
 // **********************************************************
     // pub fn ifj.chr(𝑖 : i32) []u8
-    printf("LABEL ifj.chr\n");
+    printf("LABEL ifj$chr\n");
 
     // Define local variables
     printf("DEFVAR LF@__i\n");
@@ -1100,5 +1122,5 @@ void generate_builtin_functions(){
     // Push the result onto the data stack
     printf("PUSHS LF@__retval\n");
     printf("POPFRAME\n");
-    printf("RETURN\n\n");
+    printf("RETURN\n");
 }
