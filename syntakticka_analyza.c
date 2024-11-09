@@ -582,6 +582,9 @@ token_t *code_sequence(token_t *token, AST *ast){
         return token;
     }
 
+    // <CODE_SEQUENCE> -> <FUNC_EXTENSION>
+    token = func_extension(token, ast);
+
     // <CODE_SEQUENCE> -> ε
     return token;
 }
@@ -735,7 +738,7 @@ void code(token_t *token, AST *ast){
         return;
     }
 
-    // <CODE> -> pub fn ID ( <PARAM> ) <TYPE> { <CODE_SEQUENCE> <FUNC_EXTENSION> } <CODE>
+    // <CODE> -> pub fn ID ( <PARAM> ) <TYPE> { <CODE_SEQUENCE> } <CODE>
     if(token->type != eof_token && strcmp(token->data, "pub") == 0){
         token = get_token();
         create_node(token, ast);
@@ -774,7 +777,6 @@ void code(token_t *token, AST *ast){
         token = get_token();
         create_node(token, ast);
         token = code_sequence(token, ast);
-        token = func_extension(token, ast);
         if(token->type == eof_token || strcmp(token->data, "}") != 0){
             fprintf(stderr, "Syntax error 63\n");
             exit(2);
