@@ -59,6 +59,17 @@ ASTNode *next_node(AST *ast) {
     return ast->active;
 }
 
+// Prints whole tree
+void printAST(AST *ast){
+    ast->active = ast->root;
+
+    while(ast->active != NULL){
+        // printf("%p\n", ast->active);
+        printf("%s\n", ast->active->token->data);
+        next_node(ast);
+    }
+}
+
 
 // Prints value of every token in every node, (Could be used to free the tree??)
 // void traverse_AST(AST *ast){

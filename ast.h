@@ -24,5 +24,6 @@ void create_node(token_t *token, AST *ast);
 
 ASTNode *next_node(AST *ast);
 
+void printAST(AST *ast);
 
 #endif //AST_H
