@@ -682,7 +682,7 @@ token_t* get_token(){
             case built_in_function_dot1:
                 if (current_char == '.'){
                     state = built_in_function;
-                    append_to_str_buffer(buffer, current_char);
+                    append_to_str_buffer(buffer, '$');
                 }
                 else if (current_char == '_' || isalpha(current_char) || isdigit(current_char)){
                     state = identifier;
@@ -700,7 +700,7 @@ token_t* get_token(){
             case built_in_function_dot:
                 if (current_char == '.'){
                     state = built_in_function;
-                    append_to_str_buffer(buffer, current_char);
+                    append_to_str_buffer(buffer, '$');
                 }
                 else if (current_char == 9 || current_char == 32 || current_char == '\n' || current_char == '\r'){
                     state = built_in_function_dot;
