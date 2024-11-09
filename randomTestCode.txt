@@ -18,6 +18,8 @@ DISCLAIMER!!!!! - MAY NOT BE 100% SYNTACTICALLY CORRECT
 ///////////////////////////
 Tests everything except while and function recursion
 
+DOESNT WORK - syntax error 36 - because of return in else block
+
     pub fn main() void{
         var y : i32 = 0;
         var x = max(5);
@@ -27,13 +29,13 @@ Tests everything except while and function recursion
 
     pub fn max(m: i32) i32{
         var z = 12 + 3;
-        var x: ?int32 = 0;
+        var x: ?i32 = 0;
         if (x) |TEMP| {
             if (TEMP == 3){
                 z = TEMP;
             }
             else{
-                z = x + 12/5; // 12 5 / x +
+                z = x + 12/5;
             }
             x = 1;
             return x;
