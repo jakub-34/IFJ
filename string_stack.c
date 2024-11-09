@@ -47,7 +47,7 @@ void Stack_Dispose( Stack *stack ) {
 
 int Stack_less_than(Stack *stack) {
 	for (int stack_idx = stack->topIndex; stack_idx >= 0; stack_idx--) {
-		if (!strcmp(stack->string[stack_idx],"<")) {
+		if (!strcmp(stack->string[stack_idx],"[")) {
 			return stack_idx;
 		}
 	}
@@ -57,7 +57,7 @@ int Stack_less_than(Stack *stack) {
 int Stack_find(Stack *stack) {
 	int less_than_idx = stack->topIndex;
 	for (int stack_idx = stack->topIndex; stack_idx >= 0; stack_idx--) {
-		if (strcmp(stack->string[stack_idx],"E") && strcmp(stack->string[stack_idx],"<")) {
+		if (strcmp(stack->string[stack_idx],"E") && strcmp(stack->string[stack_idx],"[")) {
 			less_than_idx = stack_idx;
 			return stack_idx;
 		}
@@ -98,11 +98,11 @@ char *Stack_extract_str(Stack *stack) {
 
 void Stack_insert_str(Stack *stack) {
 	if (strcmp(Stack_Top(stack), "E") != 0){
-		Stack_Push(stack, "<", 10);
+		Stack_Push(stack, "[", 10);
 	}
 	else{
 		Stack_Pop(stack);
-		Stack_Push(stack, "<", 10);
+		Stack_Push(stack, "[", 10);
 		Stack_Push(stack, "E", 10);
 	}
 }
