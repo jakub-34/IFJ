@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <errno.h>
 
 #include "ast.h"
 #include "codegen.h"
@@ -9,7 +8,7 @@
 
 /* **************************************************
 TODO:
-    exit code when one of operands is null/when dividing by 0?? 57 probably
+    exit code when one of operands is null/when dividing by 0?? 57 probably, hmm more like 10
 
     promenne definovane v if/else / while plati v cele funkci
     - maybe jebat, prej se to asi nebude moc testovat...
@@ -252,6 +251,9 @@ void generate_expression(ASTNode *token_node, AST *ast){
             // We know both operands have to be already same type
             printf("POPS GF@__typecheck_var\n");
             printf("TYPE GF@__typecheck_type GF@__typecheck_var\n");
+
+            // Checks if the last operand on the stack is int == if we can compare it to 0
+            printf("JUMPIFNEQ division_continuation%d GF@__typecheck_type string@int\n", div_counter);
 
             // Checks for division by 0
             printf("JUMPIFNEQ division_continuation%d GF@__typecheck_var int@0\n", div_counter);
@@ -760,7 +762,7 @@ void generate_builtin_functions(){
     
     printf("LABEL ifj_readstr_remove_newline\n");
     // Initialize new string
-    // printf("MOVE LF@__new_str string@\n");       // Empty string
+    // printf("MOVE LF@__new_str string@nil\n");       // Empty string
     printf("MOVE LF@__len LF@__i\n");     // new length is len - 1
     printf("MOVE LF@__i int@0\n");
     
@@ -935,9 +937,6 @@ void generate_builtin_functions(){
     printf("DEFVAR LF@__tmp_string\n");
     printf("DEFVAR LF@__tmp_char\n");
 
-    // Get the length of the string s
-    printf("STRLEN LF@__len LF@__s\n");
-
     // Check for error conditions
     // If i < 0
     printf("LT LF@__cond LF@__i int@0\n");
@@ -951,6 +950,9 @@ void generate_builtin_functions(){
     printf("GT LF@__cond LF@__i LF@__j\n");
     printf("JUMPIFEQ ifj_substring_error LF@__cond bool@true\n");
 
+    // Get the length of the string s
+    printf("STRLEN LF@__len LF@__s\n");
+
     // If i >= length(s)
     printf("LT LF@__cond LF@__i LF@__len\n");
     printf("JUMPIFNEQ ifj_substring_error LF@__cond bool@true\n");
@@ -960,7 +962,7 @@ void generate_builtin_functions(){
     printf("JUMPIFEQ ifj_substring_error LF@__cond bool@true\n");
 
     // Empty string init
-    // printf("MOVE LF@__substring string@\n");
+    printf("MOVE LF@__substring string@\\000\n");    // This in putting in ASCII char with value 0, which is NULL char??? but works... whatever
 
     // while loop
     printf("LABEL ifj_substring_while\n");
@@ -1082,7 +1084,7 @@ void generate_builtin_functions(){
     printf("DEFVAR LF@__retval\n");
     printf("DEFVAR LF@__cond\n");
 
-    printf("STRLEN LF@__len LF@s\n");
+    printf("STRLEN LF@__len LF@__s\n");
 
     // Default return value is 0
     printf("MOVE LF@__retval int@0\n");
