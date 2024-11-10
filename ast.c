@@ -71,19 +71,18 @@ void printAST(AST *ast){
     }
 }
 
+// Frees the whole tree
+void destroyAST(AST *ast){
+    ast->active = ast->root;
+    ASTNode *tmp = NULL;
 
-// Prints value of every token in every node, (Could be used to free the tree??)
-// void traverse_AST(AST *ast){
-//     ast->active = ast->root;
-//     ast->currentLine = ast->root;
+    // Frees all nodes
+    while(ast->active != NULL){
+        tmp = ast->active;
+        next_node(ast);
+        free(tmp);
+    }
 
-//     ASTNode *node = ast->active;
-
-//     while(node != NULL && node->newLine != NULL && node->next != NULL){
-//         if (node->token != NULL){
-//             printf("Token: %s\n", node->token->data);
-//         }
-
-//         node = next_node(ast);
-//     }
-// }
+    // and then the structure for tree itself
+    free(ast);
+}
