@@ -142,6 +142,20 @@ token_t *next_variable_continuaton(token_t *token, AST *ast){
         exit(2);
     }
 
+    // <NEXT_VARIABLE_CONTINUATION> -> <EXPRESSION>
+    if(token->type == null_token){
+        create_node(token, ast);
+        token = get_token();
+    }
+    else{
+        token = expression(token, ast);
+    }
+
+    if(strcmp(token->data, ";") == 0){
+        create_node(token, ast);
+        return token;
+    }
+
     // <NEXT_VARIABLE_CONTINUATION> -> ID ( <IN_PARAM> )
     if(token->type == identifier_token){
         create_node(token, ast);
@@ -162,20 +176,6 @@ token_t *next_variable_continuaton(token_t *token, AST *ast){
         create_node(token, ast);
         return token;
 
-    }
-
-    // <NEXT_VARIABLE_CONTINUATION> -> <EXPRESSION>
-    if(token->type == null_token){
-        create_node(token, ast);
-        token = get_token();
-    }
-    else{
-        token = expression(token, ast);
-    }
-
-    if(strcmp(token->data, ";") == 0){
-        create_node(token, ast);
-        return token;
     }
 
     fprintf(stderr, "Syntax error 10\n");
