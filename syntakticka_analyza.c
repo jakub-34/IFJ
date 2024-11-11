@@ -137,6 +137,18 @@ token_t *next_variable_continuaton(token_t *token){
         exit(2);
     }
 
+    // <NEXT_VARIABLE_CONTINUATION> -> <EXPRESSION>
+    if(token->type == null_token){
+        token = get_token();
+    }
+    else{
+        token = expression(token);
+    }
+
+    if(strcmp(token->data, ";") == 0){
+        return token;
+    }
+
     // <NEXT_VARIABLE_CONTINUATION> -> ID ( <IN_PARAM> )
     if(token->type == identifier_token){
         token = get_token();
@@ -153,18 +165,6 @@ token_t *next_variable_continuaton(token_t *token){
         token = get_token();
         return token;
 
-    }
-
-    // <NEXT_VARIABLE_CONTINUATION> -> <EXPRESSION>
-    if(token->type == null_token){
-        token = get_token();
-    }
-    else{
-        token = expression(token);
-    }
-
-    if(strcmp(token->data, ";") == 0){
-        return token;
     }
 
     fprintf(stderr, "Syntax error 10\n");
