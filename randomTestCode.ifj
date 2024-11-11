@@ -1,0 +1,210 @@
+
+// SYNTAX ERROR 8
+const ifj = @import("ifj24.zig");
+
+
+pub fn main() void {
+    var x = 5;
+    var c = x + 2;
+}
+
+////////////////////////////
+
+// Token type error, when correct, should print out "YES"
+const ifj = @import("ifj24.zig");
+
+pub fn main() void{
+    var x = null;
+    var n = null;
+    if (x == n) {
+        ifj.write("YES");
+        ifj.write("\n");
+    }
+    else {
+        ifj.write("NOPE");
+        ifj.write("\n");
+    }
+}
+
+///////////////////////////
+
+// Deadlock (jen i s tim komentarem na konci)
+const ifj = @import("ifj24.zig");
+
+    pub fn main() void{
+        ifj.write("Hello");
+        ifj.write("\n");
+    }
+
+////// Hello
+
+////////////////////////////
+
+// var x = foo(5)           -- toto spravne hodi syntax error (chybejici ;)
+// var x = null             -- toto taky spravne hodi syntax error
+// To pod tímto nehodí syntax error a deadlockne se
+const ifj = @import("ifj24.zig");
+
+pub fn main() void{
+    var x = 5
+    var n = 3;
+}
+
+///////////////////////////
+
+    const ifj = @import("ifj24.zig");
+
+    pub fn main() void{
+        var x : i32 = 0;
+        while(x < 3){
+            if (x == 2){
+                ifj.write("Two\n");
+            }
+            else{
+            }
+            x = x + 1;
+        }
+    }
+
+///////////////////////////
+// Tests everything except while and function recursion
+const ifj = @import("ifj24.zig");
+
+    pub fn main() void{
+        var y : i32 = 0;
+        var x = max(5);
+        var d: f64 = ifj.i2f(8);
+        const s = "Hola\n";
+    }
+
+    pub fn max(m: i32) i32{
+        var z = 12 + 3;
+        var x: ?i32 = 0;
+        if (x) |TEMP| {
+            if (TEMP == 3){
+                z = TEMP;
+            }
+            else{
+                z = x + 12/5;
+            }
+            x = 1;
+            return x;
+        }
+        else{
+            return 1;
+        }
+        return 1;
+    }
+
+/////////////////////////////
+// Tests nested while
+const ifj = @import("ifj24.zig");
+
+    pub fn main() void{
+        var x = 0;
+        while(x < 5){
+            x = 5;
+            var z = 0;
+            while(x) |yx| {
+                z = yx;
+            }
+        }
+    }
+
+/////////////////////////////
+// Recursion test
+const ifj = @import("ifj24.zig");
+
+    pub fn main() void{
+        var x = dec(4);
+    }
+
+    pub fn dec(m: i32) i32{
+        var result: i32 = 0;
+        if (m < 2){
+            result = 1;
+        }
+        else{
+            m = m-1;
+            result = dec(m);
+        }
+        return result;
+    }
+
+///////////////////////////////
+const ifj = @import("ifj24.zig");
+
+    pub fn foo(y:i32) i32{
+        y = y + 20;
+        y = bar(y);
+        return y + 100;
+    }
+
+    pub fn main() void{
+        var y : i32 = 10;
+        ifj.write("dadadsad");
+        var x = bar(y);
+        ifj.write("mad");
+        ifj.write(x);
+    }
+
+    pub fn bar(y: i32) i32{
+        if (y <=  200) {
+            y = foo(y);
+        }
+        else{
+
+        }
+        return y+2;
+    }
+
+///////////////////////////////
+const ifj = @import("ifj24.zig");
+
+    pub fn main() void{
+        var x = 6.2;
+        if (x < 5) {
+            ifj.write(x);
+            ifj.write("");
+        }
+        else{
+            var y = ifj.i2f(2);
+            x = x / 2;
+            y = ifj.f2i(y);
+            ifj.write(y);
+        }
+        x = ifj.f2i(x);
+        ifj.write(x);
+    }
+
+/////////////////////////////
+const ifj = @import("ifj24.zig");
+
+pub fn foo(m: i32) i32{
+    var l = 4;
+    while (l > 0){
+        ifj.write(l);
+        const p = 0;
+        ifj.write("\n");
+        l = l - 1;
+    }
+    var r = 8;
+
+    return l;
+}
+
+// Hlavni funkce
+pub fn main() void {
+    var x = 5;
+    while (x > 0){
+        var y = 2.0;
+        var z = foo(x);
+        var c = 2 + x;
+        x = x - 1;
+    }
+    const f = 12;
+    foo(f);
+    f = x + f;
+    ifj.write("KONEC");
+    ifj.write("\n");
+}
