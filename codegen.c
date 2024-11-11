@@ -8,12 +8,13 @@
 
 /* **************************************************
 TODO:
-    exit code when one of operands is null/when dividing by 0?? 57 probably, hmm more like 10
-
     promenne definovane v if/else / while plati v cele funkci
     - maybe jebat, prej se to asi nebude moc testovat...
 
 ****************************************************** */
+
+// Its value means number of declaration in current function block (during function definition print) 
+int global_decl_cnt = 0;
 
 // Function declarations:
 void generate_initial_values();
@@ -56,6 +57,11 @@ void generate_initial_values(){
     // variable for checking if/while extension
     printf("DEFVAR GF@__extcheck_var\n");
     printf("DEFVAR GF@__extcheck_type\n");
+
+    // Variables for checking if variable was already defined
+    printf("DEFVAR GF@__decl_cnt\n");
+    printf("MOVE GF@__decl_cnt int@0\n");
+    printf("DEFVAR GF@__decl_bool\n");
 
     // global variable for throwing away result of a function/expression
     printf("DEFVAR GF@_\n");
@@ -125,7 +131,7 @@ void generate_expression(ASTNode *token_node, AST *ast){
     // idk: "{" and "|" probably unnecessary, if we always have ')' token after expression in conditions
     while (strcmp(current_token_data, ";") != 0 && strcmp(current_token_data,")") != 0 && strcmp(current_token_data,"{") != 0 && strcmp(current_token_data,"|") != 0){
 
-        if (current_token_type == binary_operator_token || current_token_type == not_equal_token || current_token_type == relational_operator_token){
+        if (current_token_type == binary_operator_token || current_token_type == relational_operator_token){
             // Pops last 2 operands from stack and check their types
             printf("POPS GF@__type_conver_var1\n");
             printf("POPS GF@__type_conver_var2\n");
@@ -160,7 +166,7 @@ void generate_expression(ASTNode *token_node, AST *ast){
 
             // If one of the operands is null -> exits with error
             printf("LABEL null_error_exit%d\n", bi_operations_counter);
-            printf("EXIT int@49\n");
+            printf("EXIT int@10\n");
 
             // If same types, just push the operands back on to the stack
             printf("LABEL convert_push_back%d\n", bi_operations_counter);
@@ -173,7 +179,7 @@ void generate_expression(ASTNode *token_node, AST *ast){
         }
         // Works similiar as other operators but have to check for null differently
         // because (nill == nill) = true
-        if (current_token_type == double_equal_token){
+        else if (current_token_type == double_equal_token || current_token_type == not_equal_token){
             // Pops last 2 operands from stack and check their types
             printf("POPS GF@__type_conver_var1\n");
             printf("POPS GF@__type_conver_var2\n");
@@ -451,8 +457,29 @@ void generate_variable_declaration(ASTNode *token_node, AST *ast){
     // Skip 'var' or 'const
     token_node = next_node(ast);    // <- var_name, skip var/const
 
+    // Static counter just to create unique labels
+    static int decl_label_cnt = 0;
+
     char *var_name = token_node->token->data;
-    printf("DEFVAR LF@%s\n", var_name);
+
+    /* If __decl_cnt > global_decl_cnt, skip declaration
+        This is/(should be) only true, when going back in while loop, 
+        because the __decl_cnt already increased when going through the code for the first time
+        but the value of global_decl_cnt is printed
+    */
+    printf("GT GF@__decl_bool GF@__decl_cnt int@%d\n", global_decl_cnt);
+
+    printf("JUMPIFEQ declskip%d GF@__decl_bool bool@true \n", decl_label_cnt);
+
+        // If we are declaring variable for the first time, increase the counters so interpret dodges this part of code
+        // when ex. going back in while loop
+        printf("DEFVAR LF@%s\n", var_name);
+        printf("ADD GF@__decl_cnt GF@__decl_cnt int@1\n");
+        global_decl_cnt++;
+    
+    printf("LABEL declskip%d\n", decl_label_cnt);
+
+    decl_label_cnt++;
 
     token_node = next_node(ast);    // ":" | "="
 
@@ -532,6 +559,8 @@ void generate_assignment_or_expression(ASTNode *token_node, AST *ast){
     else if(strcmp(token_node->token->data, "(") == 0){
         // Its a function call as a statement
         generate_function_call(identifier, token_node, ast);
+        // Revert __decl_cnt to value before function call
+        printf("POPS GF@__decl_cnt\n");
     }
 }
 
@@ -562,6 +591,8 @@ void generate_function_call_assignment(char *identifier, ASTNode *function_call_
         // Pop return value from data stack into the identifier
         printf("POPS LF@%s\n", identifier);
     }
+    // Revert __decl_cnt to value before function call
+    printf("POPS GF@__decl_cnt\n");
 }
 
 void generate_string_assignment(char *identifier, char *string){
@@ -609,6 +640,10 @@ void generate_function_call(char *function_name, ASTNode *token_node, AST *ast){
         arg_count++;
     }
     // token = ')'
+
+    // Save __decl_cnt on the stack and reset it to 0
+    printf("PUSHS GF@__decl_cnt\n");
+    printf("MOVE GF@__decl_cnt int@0\n");
     
     printf("PUSHFRAME\n");
     printf("CALL %s\n", function_name);
@@ -659,11 +694,15 @@ void generate_function_definition(ASTNode *token_node, AST *ast) {
     // LABEL function_name
     printf("LABEL %s\n", token_node->token->data);
 
+    // When printing new function declaration, reset both counters to 0
+    printf("MOVE GF@__decl_cnt int@0\n");
+    global_decl_cnt = 0;
+
     token_node = next_node(ast); // skip 'function_name'
     token_node = next_node(ast); // <- parameter or ')', skip '('
 
     // Going through parameters
-    int param_idx = 0;                                  // if broken - put in static int
+    int param_idx = 0;
     while(strcmp(token_node->token->data, ")") != 0){
         // Parameter: <id> : <type>
         char *param_name = token_node->token->data; // Store identifier
