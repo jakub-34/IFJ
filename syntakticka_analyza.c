@@ -150,22 +150,19 @@ token_t *next_variable_continuaton(token_t *token){
     }
 
     // <NEXT_VARIABLE_CONTINUATION> -> ID ( <IN_PARAM> )
-    if(token->type == identifier_token){
-        token = get_token();
-        if(token->type == eof_token || strcmp(token->data, "(") != 0){
-            fprintf(stderr, "Syntax error 8\n");
-            exit(2);
-        }
-        token = get_token();
-        token = in_param(token);
-        if(token->type == eof_token || strcmp(token->data, ")") != 0){
-            fprintf(stderr, "Syntax error 9\n");
-            exit(2);
-        }
-        token = get_token();
-        return token;
-
+    if(token->type == eof_token || strcmp(token->data, "(") != 0){
+        fprintf(stderr, "Syntax error 8\n");
+        exit(2);
     }
+    token = get_token();
+    token = in_param(token);
+    if(token->type == eof_token || strcmp(token->data, ")") != 0){
+        fprintf(stderr, "Syntax error 9\n");
+        exit(2);
+    }
+    token = get_token();
+    return token;
+
 
     fprintf(stderr, "Syntax error 10\n");
     exit(2);
