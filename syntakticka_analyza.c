@@ -168,11 +168,9 @@ token_t *next_variable_continuaton(token_t *token, AST *ast){
     if(token->type == null_token){
         create_node(token, ast);
         token = get_token();
-        create_node(token, ast);
     }
     else{
         token = expression(token, ast);
-        // create_node(token, ast);
     }
 
     if(strcmp(token->data, ";") == 0){
@@ -204,7 +202,6 @@ token_t *variable_continuation(token_t *token, AST *ast){
             exit(2);
         }
         token = get_token();
-        // create_node(token, ast);
         token = next_variable_continuaton(token, ast);
         return token;
     }
@@ -212,7 +209,6 @@ token_t *variable_continuation(token_t *token, AST *ast){
     // <VARIABLE_CONTINUATION> -> = <NEXT_VARIABLE_CONTINUATION>
     if(strcmp(token->data, "=") == 0){
         token = get_token();
-        // create_node(token, ast);
         token = next_variable_continuaton(token, ast);
         return token;
     }
@@ -274,7 +270,6 @@ token_t *id_defining(token_t *token, AST *ast){
     // <ID_DEFINING> -> = <NEXT_ID_DEFINING>
     if(strcmp(token->data, "=") == 0){
         token = get_token();
-        // create_node(token, ast);
         token = next_id_defining(token, ast);
         return token;
     }
@@ -416,7 +411,6 @@ token_t *func_extension(token_t *token, AST *ast){
     // <FUNC_EXTENSION> -> return <RETURN_VALUE>
     if(strcmp(token->data, "return") == 0){
         token = get_token();
-        // create_node(token, ast);
         token = return_value(token, ast);
         if(token->type == eof_token || strcmp(token->data, ";") != 0){
             fprintf(stderr, "Syntax error 28\n");
@@ -486,7 +480,6 @@ token_t *code_sequence(token_t *token, AST *ast){
             exit(2);
         }
         token = get_token();
-        // create_node(token, ast);
         if(token->type == null_token){
             create_node(token, ast);
             token = get_token();
@@ -548,7 +541,6 @@ token_t *code_sequence(token_t *token, AST *ast){
             exit(2);
         }
         token = get_token();
-        // create_node(token, ast);
         if(token->type == null_token){
             create_node(token, ast);
             token = get_token();
@@ -642,7 +634,6 @@ void code(token_t *token, AST *ast){
             exit(2);
         }
         token = get_token();
-        // create_node(token, ast);
         if(token->type == null_token){
             create_node(token, ast);
             token = get_token();
@@ -704,7 +695,6 @@ void code(token_t *token, AST *ast){
             exit(2);
         }
         token = get_token();
-        // create_node(token, ast);
         if(token->type == null_token){
             create_node(token, ast);
             token = get_token();
