@@ -6,6 +6,7 @@ const ifj = @import("ifj24.zig");
 pub fn main() void {
     var x = 5;
     var c = x + 2;
+    var y = z(a, b);
 }
 
 ////////////////////////////
