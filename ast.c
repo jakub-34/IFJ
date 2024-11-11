@@ -77,9 +77,11 @@ void destroyAST(AST *ast){
     ASTNode *tmp = NULL;
 
     // Frees all nodes
-    while(ast->active != NULL){
+    while(ast->active != NULL && ast->active->token->type != eof_token){
         tmp = ast->active;
         next_node(ast);
+        free(tmp->token->data);
+        free(tmp->token);
         free(tmp);
     }
 
