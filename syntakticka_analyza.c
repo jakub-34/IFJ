@@ -6,6 +6,7 @@
 #include "expression.h"
 #include "ast.h"
 #include "codegen.h"
+#include "semantics.h"
 
 
 // needed declarations
@@ -829,8 +830,12 @@ int main(){
 
     code(token, ast);
 
+    semantic_analysis(ast);
+
     ast->active = NULL;
     generate_code(ast);
+
+    destroyAST(ast);
 
     // printf("Syntax OK\n");
 
