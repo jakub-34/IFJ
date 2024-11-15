@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
 #include "ast.h"
 #include "token.h"
@@ -10,22 +11,30 @@
 
 /*
 TODO:
-    fix hashtable.c functions to account for changes made in hashtable.h
-    when deleting symtable, add check for if the variable of type VAR was modified after definition
     when encountering var/fun in assignment or expression set USED as true 
     Check correct error numbers
-    Define _ variable somewhere in the most upper(down??) scope so we can use it to throw away fun value (sym void type)
+    
+    // when return, check if it returns correct stuff
+        // Check if the function that should return something actually returns something = missing return
+        // counter v global whilu, pocita pocet zanoreni a kdyz narazi na }, tak cnt--;
 */
 
 // Global variable for keeping the current function name
 char *current_function_name;
 
 // Function declarations
-void get_fun_declarations(AST *ast, ht_table_t *table, sym_stack_t *stack);
-void save_fun_dec(AST *ast, ht_table_t *table, sym_stack_t *stack);
+void get_fun_declarations(AST *ast, ht_table_t *table);
+void save_fun_dec(AST *ast, ht_table_t *table);
 void analyze_code(AST *ast, ht_table_t *table, sym_stack_t *stack);
 void var_definition(AST *ast, ht_table_t *table, sym_stack_t *stack);
-//...
+symtable_type_t check_expression(AST *ast, ht_table_t *table);
+void new_scope_if_while(AST *ast, ht_table_t *table, sym_stack_t *stack);
+void new_scope_else(AST *ast, ht_table_t *table, sym_stack_t *stack);
+void new_scope_function(AST *ast, ht_table_t *table, sym_stack_t *stack);
+void check_return_expr(AST *ast, ht_table_t *table, sym_stack_t *stack);
+void assignment_or_expression(AST *ast, ht_table_t *table, sym_stack_t *stack);
+void check_function_call_args(AST *ast, ht_table_t *table, sym_stack_t *stack);
+
 
 void semantic_analysis(AST *ast){
     ast->active = ast->root;
@@ -35,10 +44,28 @@ void semantic_analysis(AST *ast){
     sym_stack_t stack;
     sym_stack_init(&stack);
 
-    get_fun_declarations(ast, &table, &stack);
+    get_fun_declarations(ast, &table);
 
-    // TODO:
-    // Check if main was defined and correctly defined (no return value, no parameters)
+    ht_item_t *main_fun = ht_search(&table, "main");
+
+    // Check for main and correct definition of main
+    if (main_fun == NULL){
+        fprintf(stderr, "Semantic error 3: Missing main function\n");
+        exit(3);
+    }
+    
+    if (main_fun->return_type != sym_void_type){
+        fprintf(stderr, "Semantic error 4: Main cannot have a return type\n");
+        exit(4);
+    }
+
+    if (main_fun->params != NULL){
+        fprintf(stderr, "Semantic error 4: Main cannot have parameters\n");
+        exit(4);
+    }
+
+
+    ht_insert(&table, "_", sym_void_type, sym_var, true, true, -1, NULL, sym_void_type);
 
     ast->active = ast->root;
     analyze_code(ast, &table, &stack);
@@ -48,11 +75,11 @@ void semantic_analysis(AST *ast){
 }
 
 // Goes throgh whole ast but saves only function declarations
-void get_fun_declarations(AST *ast, ht_table_t *table, sym_stack_t *stack){
-    while(ast->active != NULL){
-
+void get_fun_declarations(AST *ast, ht_table_t *table){
+    while(ast->active != NULL && ast->active->token->type != eof_token){
+        
         if (strcmp(ast->active->token->data, "pub") == 0){
-            save_fun_dec(ast, table, stack);
+            save_fun_dec(ast, table);
         }
         else{
             next_node(ast);
@@ -61,16 +88,22 @@ void get_fun_declarations(AST *ast, ht_table_t *table, sym_stack_t *stack){
 }
 
 // Saves function declaration to symtable
-void save_fun_dec(AST *ast, ht_table_t *table, sym_stack_t *stack){
+void save_fun_dec(AST *ast, ht_table_t *table){
     next_node(ast); // skip pub
     next_node(ast); // skip fn
     
     char *fun_name = ast->active->token->data;
     int args_cnt = 0;
-    symtable_type_t arg_types_ptr[100];
+    symtable_type_t *arg_types_ptr = (symtable_type_t *)malloc((sizeof(symtable_type_t))*20);
 
     next_node(ast); // skip fun_name
     next_node(ast); // skip (
+    
+    // If there are no parameters
+    if (strcmp(ast->active->token->data, ")") == 0){
+        free(arg_types_ptr);
+        arg_types_ptr = NULL;
+    }
 
     while(strcmp(ast->active->token->data, ")") != 0){
         next_node(ast); // skip arg_name
@@ -100,6 +133,7 @@ void save_fun_dec(AST *ast, ht_table_t *table, sym_stack_t *stack){
 
         arg_types_ptr[args_cnt] = arg_type;
         args_cnt++;
+        next_node(ast);
         // Skip ',', because ',' can be also after last argument but doesnt have to
         if (strcmp(ast->active->token->data, ",") == 0){
             next_node(ast);
@@ -125,58 +159,76 @@ void save_fun_dec(AST *ast, ht_table_t *table, sym_stack_t *stack){
     else if (strcmp(ast->active->token->data, "[]u8") == 0){
         return_type = sym_string_type;
     }
-    else{
+    else if (strcmp(ast->active->token->data, "?[]u8") == 0){
         return_type = sym_nullable_string_type;
+    }
+    else{
+        return_type = sym_void_type;
     }
 
     // Inserts definition of function to symtable
-    ht_insert(table, fun_name, sym_func_type, sym_const, false, args_cnt, arg_types_ptr, return_type);
+    ht_insert(table, fun_name, sym_func_type, sym_const, false, false, args_cnt, arg_types_ptr, return_type);
 
     next_node(ast); // skip return_type
     next_node(ast); // skip {
 }
 
+/***************************************************** MAIN LOOP HERE *************************************************************/
 void analyze_code(AST *ast, ht_table_t *table, sym_stack_t *stack){
-    // void ht_insert(ht_table_t *table, char *name, symtable_type_t type, bool used, int input_parameters, symtable_type_t *params,symtable_type_t return_type) {
 
-    ht_insert(table, "ifj$readstr", sym_func_type, sym_const, false, 0, NULL, sym_nullable_string_type);
+    ht_insert(table, "ifj$readstr", sym_func_type, sym_const, true, true, 0, NULL, sym_nullable_string_type);
 
-    ht_insert(table, "ifj$readi32", sym_func_type, sym_const, false, 0, NULL, sym_nullable_int_type);
+    ht_insert(table, "ifj$readi32", sym_func_type, sym_const, true, true, 0, NULL, sym_nullable_int_type);
 
-    ht_insert(table, "ifj$readf64", sym_func_type, sym_const, false, 0, NULL, sym_nullable_float_type);
+    ht_insert(table, "ifj$readf64", sym_func_type, sym_const, true, true, 0, NULL, sym_nullable_float_type);
 
-    symtable_type_t ifjwrite_params[1] = {sym_string_type};
-    ht_insert(table, "ifj$write", sym_func_type, sym_const, false, 1, ifjwrite_params, sym_void_type);
+    symtable_type_t *ifjwrite_params = malloc(sizeof(symtable_type_t) * 1);
+    ifjwrite_params[0] = sym_string_type;
+    ht_insert(table, "ifj$write", sym_func_type, sym_const, true, true, 1, ifjwrite_params, sym_void_type);
 
-    symtable_type_t ifji2f_params[1] = {sym_int_type};
-    ht_insert(table, "ifj$i2f", sym_func_type, sym_const, false, 1, ifji2f_params, sym_float_type);
+    symtable_type_t *ifji2f_params = malloc(sizeof(symtable_type_t) * 1);
+    ifji2f_params[0] = sym_int_type;
+    ht_insert(table, "ifj$i2f", sym_func_type, sym_const, true, true, 1, ifji2f_params, sym_float_type);
 
-    symtable_type_t ifjf2i_params[1] = {sym_float_type};
-    ht_insert(table, "ifj$f2i", sym_func_type, sym_const, false, 1, ifjf2i_params, sym_int_type);
+    symtable_type_t *ifjf2i_params = malloc(sizeof(symtable_type_t) * 1);
+    ifjf2i_params[0] = sym_float_type;
+    ht_insert(table, "ifj$f2i", sym_func_type, sym_const, true, true, 1, ifjf2i_params, sym_int_type);
 
-    symtable_type_t ifjstring_params[1] = {sym_string_type};
-    ht_insert(table, "ifj$string", sym_func_type, sym_const, false, 1, ifjstring_params, sym_string_type);
+    symtable_type_t *ifjstring_params = malloc(sizeof(symtable_type_t) * 1);
+    ifjstring_params[0] = sym_string_type;
+    ht_insert(table, "ifj$string", sym_func_type, sym_const, true, true, 1, ifjstring_params, sym_string_type);
 
-    symtable_type_t ifjlength_params[1] = {sym_string_type};
-    ht_insert(table, "ifj$length", sym_func_type, sym_const, false, 1, ifjlength_params, sym_int_type);
+    symtable_type_t *ifjlength_params = malloc(sizeof(symtable_type_t) * 1);
+    ifjlength_params[0] = sym_string_type;
+    ht_insert(table, "ifj$length", sym_func_type, sym_const, true, true, 1, ifjlength_params, sym_int_type);
 
-    symtable_type_t ifjconcat_params[2] = {sym_string_type, sym_string_type};
-    ht_insert(table, "ifj$concat", sym_func_type, sym_const, false, 2, ifjconcat_params, sym_string_type);
+    symtable_type_t *ifjconcat_params = malloc(sizeof(symtable_type_t) * 2);
+    ifjconcat_params[0] = sym_string_type;
+    ifjconcat_params[1] = sym_string_type;
+    ht_insert(table, "ifj$concat", sym_func_type, sym_const, true, true, 2, ifjconcat_params, sym_string_type);
 
-    symtable_type_t ifjsubstring_params[3] = {sym_string_type, sym_int_type, sym_int_type};
-    ht_insert(table, "ifj$substring", sym_func_type, sym_const, false, 3, ifjsubstring_params, sym_nullable_string_type);
+    symtable_type_t *ifjsubstring_params = malloc(sizeof(symtable_type_t) * 3);
+    ifjsubstring_params[0] = sym_string_type;
+    ifjsubstring_params[1] = sym_int_type;
+    ifjsubstring_params[2] = sym_int_type;
+    ht_insert(table, "ifj$substring", sym_func_type, sym_const, true, true, 3, ifjsubstring_params, sym_nullable_string_type);
 
-    symtable_type_t ifjcmp_params[2] = {sym_string_type, sym_string_type};
-    ht_insert(table, "ifj$cmp", sym_func_type, sym_const, false, 2, ifjcmp_params, sym_int_type);
+    symtable_type_t *ifjcmp_params = malloc(sizeof(symtable_type_t) * 2);
+    ifjcmp_params[0] = sym_string_type;
+    ifjcmp_params[1] = sym_string_type;
+    ht_insert(table, "ifj$cmp", sym_func_type, sym_const, true, true, 2, ifjcmp_params, sym_int_type);
 
-    symtable_type_t ifjord_params[2] = {sym_string_type, sym_int_type};
-    ht_insert(table, "ifj$ord", sym_func_type, sym_const, false, 2, ifjord_params, sym_int_type);
+    symtable_type_t *ifjord_params = malloc(sizeof(symtable_type_t) * 2);
+    ifjord_params[0] = sym_string_type;
+    ifjord_params[1] = sym_int_type;
+    ht_insert(table, "ifj$ord", sym_func_type, sym_const, true, true, 2, ifjord_params, sym_int_type);
+
+    symtable_type_t *ifjchr_params = malloc(sizeof(symtable_type_t) * 1);
+    ifjchr_params[0] = sym_int_type;    
+    ht_insert(table, "ifj$chr", sym_func_type, sym_const, true, true, 1, ifjchr_params, sym_string_type);
     
-    symtable_type_t ifjchr_params[1] = {sym_int_type};
-    ht_insert(table, "ifj$chr", sym_func_type, sym_const, false, 1, ifjchr_params, sym_string_type);
-    
 
-    while(ast->active != NULL){
+    while(ast->active != NULL && ast->active->token->type != eof_token){
 
         if (strcmp(ast->active->token->data, "var") == 0 || strcmp(ast->active->token->data, "const") == 0){
             var_definition(ast, table, stack);
@@ -203,20 +255,6 @@ void analyze_code(AST *ast, ht_table_t *table, sym_stack_t *stack){
         else{
             next_node(ast);
         }
-
-        // TODO:
-        // when prirazeni do promenne -- check spravne typy?
-
-        // When _ variable, just ignore or like also check if it can be thrown away?
-
-
-        // when function call -- add function to array with types of parameters and return type
-
-        // when return, check if it returns correct stuff
-        // Check if the function that should return something actually returns something = missing return
-            // counter v global whilu, pocita pocet zanoreni a kdyz narazi na }, tak cnt--;
-            // kdyz
-
     }
 }
 
@@ -273,7 +311,7 @@ void var_definition(AST *ast, ht_table_t *table, sym_stack_t *stack){
         }
         // its an expression
         else{
-            res_type = check_expression(ast, table, stack);
+            res_type = check_expression(ast, table);
         }
         
         // expression result type (function call return type) is different from defined type
@@ -305,18 +343,24 @@ void var_definition(AST *ast, ht_table_t *table, sym_stack_t *stack){
                 exit(8);
             }
 
-            type = check_expression(ast, table, stack);
+            type = check_expression(ast, table);
         }
     }
 
     // inserts the variable into the sym_table
-    ht_insert(&table, identifier, type, var_type, false, -1, NULL, sym_void_type);
+    if (type == sym_const){
+        ht_insert(table, identifier, type, var_type, false, true, -1, NULL, sym_void_type);
+    }
+    else{
+        ht_insert(table, identifier, type, var_type, false, false, -1, NULL, sym_void_type);
+    }
+        
 }
 
 
 // Checks if all the operands in expression are compatible and returns type of result of the expression
-symtable_type_t check_expression(AST *ast, ht_table_t *table, sym_stack_t *stack){
-    ht_item_t type_stack[100];
+symtable_type_t check_expression(AST *ast, ht_table_t *table){
+    ht_item_t type_stack[100] = {0};
     int stack_top = -1;
 
     symtable_type_t type = sym_void_type;
@@ -339,7 +383,7 @@ symtable_type_t check_expression(AST *ast, ht_table_t *table, sym_stack_t *stack
         }
         else if (ast->active->token->type == identifier_token){
             // check if the variable is defined
-            ht_item_t *var_entry = ht_search(&table, ast->active->token->data);
+            ht_item_t *var_entry = ht_search(table, ast->active->token->data);
             if (var_entry->type == sym_null_type){
                 fprintf(stderr, "Semantic error 3: Variable %s is not defined\n", ast->active->token->data);
                 exit(3);
@@ -504,11 +548,11 @@ void new_scope_if_while(AST *ast, ht_table_t *table, sym_stack_t *stack){
     // Doesnt have extension
     if (strcmp(ast->active->next->next->token->data, "|") != 0){
         // Get expression result type
-        symtable_type_t type = check_expression(ast, table, stack);
+        symtable_type_t type = check_expression(ast, table);
         // after expression, ast->active is ) || ;
 
         if (type != sym_bool_type){
-            fpritnf(stderr, "Semantic error 7: Condition result is not of type boolean\n");
+            fprintf(stderr, "Semantic error 7: Condition result is not of type boolean\n");
             exit(7);
         }
 
@@ -540,7 +584,7 @@ void new_scope_if_while(AST *ast, ht_table_t *table, sym_stack_t *stack){
 
         char *id_without_null = ast->active->token->data;
 
-        ht_insert(&table, id_without_null, type, sym_var, false, -1, NULL, sym_void_type);
+        ht_insert(table, id_without_null, type, sym_var, false, true, -1, NULL, sym_void_type);
         
         next_node(ast); // skip id_without_null
         next_node(ast); // skip |
@@ -593,7 +637,7 @@ void new_scope_function(AST *ast, ht_table_t *table, sym_stack_t *stack){
             arg_type = sym_nullable_string_type;
         }
 
-        ht_insert(table, arg_name, arg_type, sym_const, false, -1, NULL, sym_void_type);
+        ht_insert(table, arg_name, arg_type, sym_const, false, true, -1, NULL, sym_void_type);
 
         // Skip ',', because ',' can be also after last argument but doesnt have to
         if (strcmp(ast->active->token->data, ",") == 0){
@@ -611,7 +655,7 @@ void new_scope_function(AST *ast, ht_table_t *table, sym_stack_t *stack){
 void check_return_expr(AST *ast, ht_table_t *table, sym_stack_t *stack){
     // has to remember what function it is in right now... how, global variable?
     next_node(ast); // skip return
-    symtable_type_t expr_type = check_expression(ast, table, stack);
+    symtable_type_t expr_type = check_expression(ast, table);
     ht_item_t *fun_entry = ht_search(table, current_function_name);
     symtable_type_t current_function_type = fun_entry->return_type;
     
@@ -658,6 +702,7 @@ void assignment_or_expression(AST *ast, ht_table_t *table, sym_stack_t *stack){
         next_node(ast); // skip var_name
         next_node(ast); // skip =
 
+
         // Its a function assignment
         if (strcmp(ast->active->next->token->data, "(") == 0){
             char *fun_name = ast->active->token->data;
@@ -680,14 +725,13 @@ void assignment_or_expression(AST *ast, ht_table_t *table, sym_stack_t *stack){
         }
         // Its an expression assignment
         else{
-            symtable_var_type_t expr_res_type = check_expression(ast, table, stack);
+            symtable_var_type_t expr_res_type = check_expression(ast, table);
         
             if (expr_res_type != var_type){
                 fprintf(stderr, "Semantic erorr 7: Incompatible assignment type\n");
                 exit(7);
             }
         }
-
     }
 }
 
@@ -695,7 +739,7 @@ void assignment_or_expression(AST *ast, ht_table_t *table, sym_stack_t *stack){
 // ast->active == function_name
 void check_function_call_args(AST *ast, ht_table_t *table, sym_stack_t *stack){
     ht_item_t *fun_entry = ht_search(table, ast->active->token->data);
-    
+    fun_entry->used = true;
     int expected_params = fun_entry->input_parameters;
     symtable_type_t *expected_types = fun_entry->params;
     
