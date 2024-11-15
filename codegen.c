@@ -6,13 +6,6 @@
 #include "codegen.h"
 
 
-/* **************************************************
-TODO:
-    promenne definovane v if/else / while plati v cele funkci
-    - maybe jebat, prej se to asi nebude moc testovat...
-
-****************************************************** */
-
 // Its value means number of declaration in current function block (during function definition print) 
 int global_decl_cnt = 0;
 
@@ -75,7 +68,6 @@ void generate_initial_values(){
 
 /********************** MAIN ***************************/
 int generate_code(AST *ast){
-    // setbuf(stdout, NULL);
     // printAST(ast);
 
     ast->active = ast->root;
@@ -128,8 +120,8 @@ void generate_expression(ASTNode *token_node, AST *ast){
     static int bi_operations_counter = 0;
     static int div_counter = 0;
 
-    // idk: "{" and "|" probably unnecessary, if we always have ')' token after expression in conditions
-    while (strcmp(current_token_data, ";") != 0 && strcmp(current_token_data,")") != 0 && strcmp(current_token_data,"{") != 0 && strcmp(current_token_data,"|") != 0){
+    // Every expression ends ';' or ')'
+    while (strcmp(current_token_data, ";") != 0 && strcmp(current_token_data,")") != 0){
 
         if (current_token_type == binary_operator_token || current_token_type == relational_operator_token){
             // Pops last 2 operands from stack and check their types
@@ -320,7 +312,7 @@ void generate_if_statement(ASTNode *token_node, AST *ast){
         token_node = next_node(ast);    // skip ')'
         token_node = next_node(ast);    // skip '|'
         
-        printf("DEFVAR LF@%s\n", token_node->token->data);    // TODO: isnt temporary... 
+        printf("DEFVAR LF@%s\n", token_node->token->data);
         printf("MOVE LF@%s GF@__extcheck_var\n", token_node->token->data);
 
         token_node = next_node(ast);    // skip 'y'
@@ -404,7 +396,7 @@ void generate_while_loop(ASTNode *token_node, AST *ast){
 
 
         // If so, define new variable and move value of the condition into it
-        printf("DEFVAR LF@%s\n", token_node->next->next->next->token->data);    // TODO: isnt temporary... 
+        printf("DEFVAR LF@%s\n", token_node->next->next->next->token->data);
         printf("MOVE LF@%s GF@__extcheck_var\n", token_node->next->next->next->token->data);
 
         // While always returns here when reaching end of its block 
@@ -685,7 +677,6 @@ char *escape_string(const char *input) {
 
 // pub fn ID (parametry) <return TYPE> {
 // pub fn add(a : i32, b : i32) i32{
-
 void generate_function_definition(ASTNode *token_node, AST *ast) {
 
     token_node = next_node(ast); // skip 'pub'
@@ -760,7 +751,6 @@ void generate_function_return(ASTNode *token_node, AST *ast) {
 void generate_builtin_functions(){
 /************************  Functions for reading/writing  ************************/
     // pub fn ifj.readstr() ?[]u8
-
     printf("LABEL ifj$readstr\n");
     
     // Define local variables
