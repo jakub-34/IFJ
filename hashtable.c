@@ -49,7 +49,7 @@ ht_item_t *ht_search(ht_table_t *table, char *name) {
 }
 
 // Insert new item into table
-void ht_insert(ht_table_t *table, char *name, symtable_type_t type, bool used, int input_parameters) {
+void ht_insert(ht_table_t *table, char *name, symtable_type_t type, symtable_var_type_t var_type, bool used, bool modified, int input_parameters, symtable_type_t *params, symtable_type_t return_type) {
     // Resize table if needed
     if (table->item_count >= table->size){
         ht_resize(table);
@@ -70,8 +70,12 @@ void ht_insert(ht_table_t *table, char *name, symtable_type_t type, bool used, i
   }
   new_item->name = name;
   new_item->type = type;
+  new_item->var_type = var_type;
   new_item->input_parameters = input_parameters;
   new_item->used = used;
+  new_item->modified = modified;
+  new_item->return_type = return_type;
+  new_item->params = params;
   int hash = get_hash(name, table->size);
   
   // Add new value into the list
@@ -134,15 +138,21 @@ void ht_delete_all(ht_table_t *table) {
     while (table->items[i] != NULL){
       ht_item_t *item = table->items[i];
       if((item->type != sym_func_type) && (item->used == false)){
-          fprintf(stderr, "Unused variable\n");
+          fprintf(stderr, "Semantic error 9: Unused variable\n");
           exit(9);
-        }
-        ht_item_t *temp = item;
-        item = item->next;
-        table->items[i] = item;
-        free(temp);
-        temp = NULL;
-        continue;
+      }
+      // Added modified check
+      if((item->var_type == sym_var) && (item->modified == false)){
+          fprintf(stderr, "Semantic error 9: Variable declared but not modified\n");
+          exit(9);
+      }
+      ht_item_t *temp = item;
+      item = item->next;
+      table->items[i] = item;
+      free(temp->params);
+      free(temp);
+      temp = NULL;
+      continue;
       }
       table->items[i] = NULL;
     }
@@ -202,7 +212,7 @@ void ht_resize(ht_table_t *table){
     for(int i = 0; i < table->size; i++){
         ht_item_t *item = table->items[i];
         while(item != NULL){
-            ht_insert(&new_table, item->name, item->type, item->used, item->input_parameters);
+            ht_insert(&new_table, item->name, item->type, item->var_type, item->used, item->modified, item->input_parameters, item->params, item->return_type);
             item = item->next;
         }
     }
@@ -238,8 +248,13 @@ ht_item_t *ht_copy_item(ht_item_t *item){
   }
 
   new_item->type = item->type;
+  new_item->var_type = item->var_type;
   new_item->used = item->used;
   new_item->input_parameters = item->input_parameters;
+  new_item->modified = item->modified;
+  new_item->params = item->params;
+  new_item->return_type = item->return_type;
+  
 
   new_item->next = ht_copy_item(item->next);
 

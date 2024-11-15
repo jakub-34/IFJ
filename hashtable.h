@@ -3,20 +3,36 @@
 
 #include <stdbool.h>
 
-
+// DONT CHANGE ORDER IN ENUM! (nullable types always must be)
 typedef enum symtable_type{
   sym_int_type,
+  sym_nullable_int_type,
   sym_float_type,
+  sym_nullable_float_type,
   sym_string_type,
-  sym_func_type
+  sym_nullable_string_type,
+  sym_func_type,
+  // until this are types used for type of identifier
+  sym_null_type,
+  sym_void_type,  // for type of return value
+  sym_bool_type   // for condition result
 }symtable_type_t;
 
+typedef enum symtable_var_type{
+  sym_var,
+  sym_const,
+  sym_literal
+}symtable_var_type_t;
 
 typedef struct ht_item {
   char *name;
   symtable_type_t type;
+  symtable_var_type_t var_type;
   bool used;
+  bool modified;
   int input_parameters;
+  symtable_type_t *params;
+  symtable_type_t return_type;
   struct ht_item *next;
 } ht_item_t;
 
@@ -35,7 +51,7 @@ ht_item_t *ht_search(ht_table_t *table, char *name);
 
 // Insert new item into table
 // Also checking redefinition sematic error
-void ht_insert(ht_table_t *table, char *name, symtable_type_t type, bool used, int input_parameters);
+void ht_insert(ht_table_t *table, char *name, symtable_type_t type, symtable_var_type_t var_type, bool used, bool modified, int input_parameters, symtable_type_t *params, symtable_type_t return_type);
 
 // Copy table into new one
 void ht_copy(ht_table_t *old_table, ht_table_t *new_table);
