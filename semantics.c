@@ -17,6 +17,7 @@ TODO:
     // when return, check if it returns correct stuff
         // Check if the function that should return something actually returns something = missing return
         // counter v global whilu, pocita pocet zanoreni a kdyz narazi na }, tak cnt--;
+    call ht_insert with structure of arguments
 */
 
 // Global variable for keeping the current function name
@@ -26,16 +27,15 @@ char *current_function_name;
 void get_fun_declarations(AST *ast, ht_table_t *table);
 void save_fun_dec(AST *ast, ht_table_t *table);
 void analyze_code(AST *ast, ht_table_t *table, sym_stack_t *stack);
-void var_definition(AST *ast, ht_table_t *table, sym_stack_t *stack);
+void var_definition(AST *ast, ht_table_t *table);
 symtable_type_t check_expression(AST *ast, ht_table_t *table);
 void new_scope_if_while(AST *ast, ht_table_t *table, sym_stack_t *stack);
-void new_scope_else(AST *ast, ht_table_t *table, sym_stack_t *stack);
 void new_scope_function(AST *ast, ht_table_t *table, sym_stack_t *stack);
-void check_return_expr(AST *ast, ht_table_t *table, sym_stack_t *stack);
-void assignment_or_expression(AST *ast, ht_table_t *table, sym_stack_t *stack);
-void check_function_call_args(AST *ast, ht_table_t *table, sym_stack_t *stack);
+void check_return_expr(AST *ast, ht_table_t *table);
+void assignment_or_expression(AST *ast, ht_table_t *table);
+void check_function_call_args(AST *ast, ht_table_t *table);
 
-
+// Starting function
 void semantic_analysis(AST *ast){
     ast->active = ast->root;
 
@@ -173,7 +173,7 @@ void save_fun_dec(AST *ast, ht_table_t *table){
     next_node(ast); // skip {
 }
 
-/***************************************************** MAIN LOOP HERE *************************************************************/
+/***************************************************** MAIN FUNCTION *************************************************************/
 void analyze_code(AST *ast, ht_table_t *table, sym_stack_t *stack){
 
     ht_insert(table, "ifj$readstr", sym_func_type, sym_const, true, true, 0, NULL, sym_nullable_string_type);
@@ -227,30 +227,41 @@ void analyze_code(AST *ast, ht_table_t *table, sym_stack_t *stack){
     ifjchr_params[0] = sym_int_type;    
     ht_insert(table, "ifj$chr", sym_func_type, sym_const, true, true, 1, ifjchr_params, sym_string_type);
     
-
+/************************************** MAIN LOOP *************************************************/
     while(ast->active != NULL && ast->active->token->type != eof_token){
+        // For keeping track of scopes, so we can check missing return
+        static int scope_cnt = 0;
 
         if (strcmp(ast->active->token->data, "var") == 0 || strcmp(ast->active->token->data, "const") == 0){
-            var_definition(ast, table, stack);
+            var_definition(ast, table);
         }
         else if (strcmp(ast->active->token->data, "if") == 0 || strcmp(ast->active->token->data, "while") == 0){
+            scope_cnt++;
             new_scope_if_while(ast, table, stack);
         }
         else if (strcmp(ast->active->token->data, "else") == 0){
-            new_scope_else(ast, table, stack);
+            scope_cnt++;
+            new_scope(stack, table);
+            next_node(ast); // skip else
+            next_node(ast); // skip {
         }
         else if (strcmp(ast->active->token->data, "pub") == 0){
+            scope_cnt++;
             new_scope_function(ast, table, stack);
         }
         else if (strcmp(ast->active->token->data, "}") == 0){
+            scope_cnt--;
+            if (scope_cnt == 0){
+                // check is current function is void or missing return
+            }
             leave_scope(stack, table);
             next_node(ast);
         }
         else if (strcmp(ast->active->token->data, "return") == 0){
-            check_return_expr(ast, table, stack);
+            check_return_expr(ast, table);
         }
         else if (ast->active->token->type == identifier_token){
-            assignment_or_expression(ast, table, stack);
+            assignment_or_expression(ast, table);
         }
         else{
             next_node(ast);
@@ -258,7 +269,7 @@ void analyze_code(AST *ast, ht_table_t *table, sym_stack_t *stack){
     }
 }
 
-void var_definition(AST *ast, ht_table_t *table, sym_stack_t *stack){
+void var_definition(AST *ast, ht_table_t *table){
     symtable_var_type_t var_type;
     if (strcmp(ast->active->token->data, "var") == 0) {
         var_type = sym_var;
@@ -307,7 +318,7 @@ void var_definition(AST *ast, ht_table_t *table, sym_stack_t *stack){
             fun->used = true;
 
             // check correct function call
-            check_function_call_args(ast, table, stack);
+            check_function_call_args(ast, table);
         }
         // its an expression
         else{
@@ -333,7 +344,7 @@ void var_definition(AST *ast, ht_table_t *table, sym_stack_t *stack){
             fun->used = true;
 
             // check correct function call
-            check_function_call_args(ast, table, stack);
+            check_function_call_args(ast, table);
         }
         // its an expression
         else{
@@ -348,7 +359,7 @@ void var_definition(AST *ast, ht_table_t *table, sym_stack_t *stack){
     }
 
     // inserts the variable into the sym_table
-    if (type == sym_const){
+    if (var_type == sym_const){
         ht_insert(table, identifier, type, var_type, false, true, -1, NULL, sym_void_type);
     }
     else{
@@ -592,13 +603,6 @@ void new_scope_if_while(AST *ast, ht_table_t *table, sym_stack_t *stack){
     }
 }
 
-// Creates new scope for else branch
-void new_scope_else(AST *ast, ht_table_t *table, sym_stack_t *stack){
-    new_scope(stack, table);
-    next_node(ast); // skip else
-    next_node(ast); // skip {
-}
-
 // Creates new scope for function and define fun arguments in it
 void new_scope_function(AST *ast, ht_table_t *table, sym_stack_t *stack){
     next_node(ast); // skip pub
@@ -652,7 +656,7 @@ void new_scope_function(AST *ast, ht_table_t *table, sym_stack_t *stack){
 
 // Calls check_expression and compares the type to the type the expression is supposed to return
 // (DOESNT leave scope, that will happen next time it goes throught while)
-void check_return_expr(AST *ast, ht_table_t *table, sym_stack_t *stack){
+void check_return_expr(AST *ast, ht_table_t *table){
     // has to remember what function it is in right now... how, global variable?
     next_node(ast); // skip return
     symtable_type_t expr_type = check_expression(ast, table);
@@ -672,7 +676,7 @@ foo();
 x = foo;
 x = y + 2;
 */
-void assignment_or_expression(AST *ast, ht_table_t *table, sym_stack_t *stack){
+void assignment_or_expression(AST *ast, ht_table_t *table){
     // Its a function call without assignment
     if (strcmp(ast->active->next->token->data, "(") == 0){
         char *fun_name = ast->active->token->data;
@@ -683,7 +687,7 @@ void assignment_or_expression(AST *ast, ht_table_t *table, sym_stack_t *stack){
             fprintf(stderr, "Semantic error 4: Illegal discarding of function return value\n");
             exit(4);
         }
-        check_function_call_args(ast, table, stack);
+        check_function_call_args(ast, table);
     }
     // Its an assignment
     else{
@@ -697,7 +701,7 @@ void assignment_or_expression(AST *ast, ht_table_t *table, sym_stack_t *stack){
             exit(5);
         }
 
-        symtable_var_type_t var_type = var->type;
+        symtable_type_t var_type = var->type;
 
         next_node(ast); // skip var_name
         next_node(ast); // skip =
@@ -709,7 +713,7 @@ void assignment_or_expression(AST *ast, ht_table_t *table, sym_stack_t *stack){
             ht_item_t *fun = ht_search(table, fun_name);
             fun->used = true;
 
-            symtable_var_type_t fun_ret_type = fun->return_type;
+            symtable_type_t fun_ret_type = fun->return_type;
 
             if (fun_ret_type == sym_void_type){
                 fprintf(stderr, "Semantic erorr 7: Assignment from function that doesnt return anything\n");
@@ -720,12 +724,12 @@ void assignment_or_expression(AST *ast, ht_table_t *table, sym_stack_t *stack){
                 exit(7);
             }
 
-            check_function_call_args(ast, table, stack);
+            check_function_call_args(ast, table);
 
         }
         // Its an expression assignment
         else{
-            symtable_var_type_t expr_res_type = check_expression(ast, table);
+            symtable_type_t expr_res_type = check_expression(ast, table);
         
             if (expr_res_type != var_type){
                 fprintf(stderr, "Semantic erorr 7: Incompatible assignment type\n");
@@ -737,7 +741,7 @@ void assignment_or_expression(AST *ast, ht_table_t *table, sym_stack_t *stack){
 
 // Checks if given function is called with correct types of arguments
 // ast->active == function_name
-void check_function_call_args(AST *ast, ht_table_t *table, sym_stack_t *stack){
+void check_function_call_args(AST *ast, ht_table_t *table){
     ht_item_t *fun_entry = ht_search(table, ast->active->token->data);
     fun_entry->used = true;
     int expected_params = fun_entry->input_parameters;
@@ -749,7 +753,7 @@ void check_function_call_args(AST *ast, ht_table_t *table, sym_stack_t *stack){
     int idx = 0;
     while (strcmp(ast->active->token->data, ")") != 0){
         symtable_type_t arg_type;
-        symtable_var_type_t arg_var_type;
+        // symtable_var_type_t arg_var_type;
 
         if (ast->active->token->type == identifier_token){
             ht_item_t *var_entry = ht_search(table, ast->active->token->data);
@@ -759,23 +763,23 @@ void check_function_call_args(AST *ast, ht_table_t *table, sym_stack_t *stack){
             }
             var_entry->used = true;
             arg_type = var_entry->type;
-            arg_var_type = sym_var;
+            // arg_var_type = sym_var;
         }
         else if (ast->active->token->type == int_token){
             arg_type = sym_int_type;
-            arg_var_type = sym_literal;
+            // arg_var_type = sym_literal;
         }
         else if (ast->active->token->type == float_token){
             arg_type = sym_float_type;
-            arg_var_type = sym_literal;
+            // arg_var_type = sym_literal;
         }
         else if (ast->active->token->type == string_token){
             arg_type = sym_string_type;
-            arg_var_type = sym_literal;
+            // arg_var_type = sym_literal;
         }
         else if (ast->active->token->type == null_token){
             arg_type = sym_null_type;
-            arg_var_type = sym_literal;
+            // arg_var_type = sym_literal;
         }
         else{
             fprintf(stderr, "Semantic error 7: Invalid argument type\n");
