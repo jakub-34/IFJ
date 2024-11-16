@@ -685,6 +685,10 @@ void assignment_or_expression(AST *ast, ht_table_t *table){
     if (strcmp(ast->active->next->token->data, "(") == 0){
         char *fun_name = ast->active->token->data;
         ht_item_t *fun = ht_search(table, fun_name);
+        if (fun == NULL){
+            fprintf(stderr, "Semantic error : Undefined function reference\n");
+            exit(3);            // TODO: check this error code
+        }
         fun->used = true;
 
         if (fun->return_type != sym_void_type){
