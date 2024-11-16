@@ -11,13 +11,13 @@
 
 /*
 TODO:
-    when encountering var/fun in assignment or expression set USED as true 
     Check correct error numbers
     
-    // when return, check if it returns correct stuff
-        // Check if the function that should return something actually returns something = missing return
-        // counter v global whilu, pocita pocet zanoreni a kdyz narazi na }, tak cnt--;
     call ht_insert with structure of arguments
+
+    Is valid: "return foo(x);"? If so... we dont account for it yet
+
+    scope handling probably broken, while, if and function calls doesnt work (segfault in check_expression loc: 397)
 */
 
 // Global variable for keeping the current function name
@@ -252,7 +252,11 @@ void analyze_code(AST *ast, ht_table_t *table, sym_stack_t *stack){
         else if (strcmp(ast->active->token->data, "}") == 0){
             scope_cnt--;
             if (scope_cnt == 0){
-                // check is current function is void or missing return
+                ht_item_t *fun = ht_search(table, current_function_name);
+                if (fun->return_type != sym_void_type){
+                    fprintf(stderr, "Semantic error 6: Missing return for non-void function\n");
+                    exit(6);
+                }
             }
             leave_scope(stack, table);
             next_node(ast);
@@ -269,6 +273,7 @@ void analyze_code(AST *ast, ht_table_t *table, sym_stack_t *stack){
     }
 }
 
+// Defining new variable and inserting it into symtable
 void var_definition(AST *ast, ht_table_t *table){
     symtable_var_type_t var_type;
     if (strcmp(ast->active->token->data, "var") == 0) {
@@ -575,7 +580,7 @@ void new_scope_if_while(AST *ast, ht_table_t *table, sym_stack_t *stack){
     else{
         ht_item_t *item = ht_search(table, ast->active->token->data);
         if (item == NULL){
-            fprintf(stderr, "Semantic error 3: Undefined variable\n");
+            fprintf(stderr, "Semantic error 3: Undefined variable in condition\n");
             exit(3);
         }
 
@@ -655,9 +660,8 @@ void new_scope_function(AST *ast, ht_table_t *table, sym_stack_t *stack){
 }
 
 // Calls check_expression and compares the type to the type the expression is supposed to return
-// (DOESNT leave scope, that will happen next time it goes throught while)
+// (DOESNT leave scope, that will happen next time it goes through while)
 void check_return_expr(AST *ast, ht_table_t *table){
-    // has to remember what function it is in right now... how, global variable?
     next_node(ast); // skip return
     symtable_type_t expr_type = check_expression(ast, table);
     ht_item_t *fun_entry = ht_search(table, current_function_name);
@@ -743,7 +747,7 @@ void assignment_or_expression(AST *ast, ht_table_t *table){
 // ast->active == function_name
 void check_function_call_args(AST *ast, ht_table_t *table){
     ht_item_t *fun_entry = ht_search(table, ast->active->token->data);
-    fun_entry->used = true;
+    fun_entry->used = true; // idk: maybe unnecesarry because already set before call
     int expected_params = fun_entry->input_parameters;
     symtable_type_t *expected_types = fun_entry->params;
     
