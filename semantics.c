@@ -17,7 +17,7 @@ TODO:
 
     Is valid: "return foo(x);"? If so... we dont account for it yet
 
-    scope handling probably broken, while, if and function calls doesnt work (segfault in check_expression loc: 397)
+    scope handling probably broken, while, if and function calls doesnt work (saying variable is undefined while should be defined)
 */
 
 // Global variable for keeping the current function name
@@ -400,7 +400,7 @@ symtable_type_t check_expression(AST *ast, ht_table_t *table){
         else if (ast->active->token->type == identifier_token){
             // check if the variable is defined
             ht_item_t *var_entry = ht_search(table, ast->active->token->data);
-            if (var_entry->type == sym_null_type){
+            if (var_entry == NULL){
                 fprintf(stderr, "Semantic error 3: Variable %s is not defined\n", ast->active->token->data);
                 exit(3);
             }
