@@ -58,7 +58,7 @@ void ht_insert(ht_table_t *table, char *name, symtable_type_t type, symtable_var
   // Existing item
   ht_item_t *existing_item = ht_search(table, name);
   if (existing_item != NULL){
-    fprintf(stderr, "Redefinition of variable\n");
+    fprintf(stderr, "Redefinition of variable%s\n", name);
     exit(5);
   }
 
@@ -138,18 +138,18 @@ void ht_delete_all(ht_table_t *table) {
     while (table->items[i] != NULL){
       ht_item_t *item = table->items[i];
       if((item->type != sym_func_type) && (item->used == false)){
-          fprintf(stderr, "Semantic error 9: Unused variable\n");
+          fprintf(stderr, "Semantic error 9: Unused variable: %s\n", item->name);
           exit(9);
       }
       // Added modified check
       if((item->var_type == sym_var) && (item->modified == false)){
-          fprintf(stderr, "Semantic error 9: Variable declared but not modified\n");
+          fprintf(stderr, "Semantic error 9: Variable declared but not modified %s\n", item->name);
           exit(9);
       }
       ht_item_t *temp = item;
       item = item->next;
       table->items[i] = item;
-      free(temp->params);
+      // free(temp->params);
       free(temp);
       temp = NULL;
       continue;
@@ -250,8 +250,8 @@ ht_item_t *ht_copy_item(ht_item_t *item){
   new_item->type = item->type;
   new_item->var_type = item->var_type;
   new_item->used = item->used;
-  new_item->input_parameters = item->input_parameters;
   new_item->modified = item->modified;
+  new_item->input_parameters = item->input_parameters;
   new_item->params = item->params;
   new_item->return_type = item->return_type;
   
@@ -280,4 +280,20 @@ void ht_copy(ht_table_t *old_table, ht_table_t *new_table){
       new_table->items[i] = NULL;
     }
   }
+}
+
+// Function to print the contents of the hashtable
+void ht_print(ht_table_t *table){
+    fprintf(stderr, "Hashtable Contents:\n");
+    for(int i = 0; i < table->size; i++){
+        ht_item_t *item = table->items[i];
+        if(item != NULL){
+            fprintf(stderr, "Bucket %d:\n", i);
+            while(item != NULL){
+                fprintf(stderr, "  Name: %s, Type: %d, Var Type: %d, Used: %d, Modified: %d, Input Params: %d, Return Type: %d\n",
+                       item->name, item->type, item->var_type, item->used, item->modified, item->input_parameters, item->return_type);
+                item = item->next;
+            }
+        }
+    }
 }

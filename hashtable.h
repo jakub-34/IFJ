@@ -63,4 +63,6 @@ void ht_delete(ht_table_t *table, char *name);
 // Also checking unused variable semantic error
 void ht_delete_all(ht_table_t *table);
 
+void ht_print(ht_table_t *table);
+
 #endif

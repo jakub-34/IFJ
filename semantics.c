@@ -18,6 +18,8 @@ TODO:
     Is valid: "return foo(x);"? If so... we dont account for it yet
 
     scope handling probably broken, while, if and function calls doesnt work (saying variable is undefined while should be defined)
+
+    Fix missing return
 */
 
 // Global variable for keeping the current function name
@@ -74,7 +76,7 @@ void semantic_analysis(AST *ast){
     ht_delete_all(&table);
 }
 
-// Goes throgh whole ast but saves only function declarations
+// Goes through whole ast but saves only function declarations
 void get_fun_declarations(AST *ast, ht_table_t *table){
     while(ast->active != NULL && ast->active->token->type != eof_token){
         
@@ -240,7 +242,6 @@ void analyze_code(AST *ast, ht_table_t *table, sym_stack_t *stack){
             new_scope_if_while(ast, table, stack);
         }
         else if (strcmp(ast->active->token->data, "else") == 0){
-            scope_cnt++;
             new_scope(stack, table);
             next_node(ast); // skip else
             next_node(ast); // skip {
@@ -252,7 +253,12 @@ void analyze_code(AST *ast, ht_table_t *table, sym_stack_t *stack){
         else if (strcmp(ast->active->token->data, "}") == 0){
             scope_cnt--;
             if (scope_cnt == 0){
+                fprintf(stderr, "CurrentFun: %s\n", current_function_name);
+
+
                 ht_item_t *fun = ht_search(table, current_function_name);
+                fprintf(stderr, "CurrentFunReturn: %d\n", fun->return_type);
+
                 if (fun->return_type != sym_void_type){
                     fprintf(stderr, "Semantic error 6: Missing return for non-void function\n");
                     exit(6);
@@ -262,6 +268,7 @@ void analyze_code(AST *ast, ht_table_t *table, sym_stack_t *stack){
             next_node(ast);
         }
         else if (strcmp(ast->active->token->data, "return") == 0){
+            scope_cnt--;
             check_return_expr(ast, table);
         }
         else if (ast->active->token->type == identifier_token){
@@ -348,6 +355,11 @@ void var_definition(AST *ast, ht_table_t *table){
             type = fun->return_type;
             fun->used = true;
 
+            if (type == sym_void_type){
+                fprintf(stderr, "Semantic error 7: Incompatible types when assigning from function to variable %s\n", identifier);
+                exit(7);
+            }
+
             // check correct function call
             check_function_call_args(ast, table);
         }
@@ -425,7 +437,7 @@ symtable_type_t check_expression(AST *ast, ht_table_t *table){
             symtable_type_t result_type;
             symtable_var_type_t result_var_type;
 
-            // Both operants are variables
+            // Both operands are variables
             if(left_var_type != sym_literal && right_var_type != sym_literal){
                 if(left_type == right_type){
                     result_type = left_type;
@@ -445,7 +457,6 @@ symtable_type_t check_expression(AST *ast, ht_table_t *table){
                 if (var_type == const_type){
                     result_type = var_type;
                 }
-                
                 else if (var_type == sym_float_type && const_type == sym_int_type){
                     result_type = sym_float_type;
                 }
@@ -495,8 +506,8 @@ symtable_type_t check_expression(AST *ast, ht_table_t *table){
             symtable_var_type_t right_var_type = right.var_type;
             symtable_var_type_t left_var_type = left.var_type;
 
-            symtable_type_t result_type;
-            symtable_var_type_t result_var_type;
+            symtable_type_t result_type = sym_bool_type;
+            symtable_var_type_t result_var_type = sym_literal;
 
             if (left_type == right_type){
                 // Types match
@@ -556,8 +567,14 @@ symtable_type_t check_expression(AST *ast, ht_table_t *table){
 
 // Creates new scope for if/while and defines new variable if there is while/if extension
 void new_scope_if_while(AST *ast, ht_table_t *table, sym_stack_t *stack){
+    ht_print(table);
+    
+    fprintf(stderr, "\n\n\n\n");
+
     new_scope(stack, table);
     
+    ht_print(table);
+
     next_node(ast); // skip while/if
     next_node(ast); // skip (
 
@@ -646,6 +663,8 @@ void new_scope_function(AST *ast, ht_table_t *table, sym_stack_t *stack){
             arg_type = sym_nullable_string_type;
         }
 
+        next_node(ast); // skip type
+
         ht_insert(table, arg_name, arg_type, sym_const, false, true, -1, NULL, sym_void_type);
 
         // Skip ',', because ',' can be also after last argument but doesnt have to
@@ -699,13 +718,21 @@ void assignment_or_expression(AST *ast, ht_table_t *table){
     }
     // Its an assignment
     else{
+
+        ht_print(table);
+        fprintf(stderr, "\n\n\n");
+
         char *var_name = ast->active->token->data;
+        fprintf(stderr, "VAR_NAME: %s\n", var_name);
         ht_item_t *var = ht_search(table, var_name);
         var->used = true;
         var->modified = true;
+
+        ht_print(table);
+        fprintf(stderr, "\n\n\n");
         
         if (var->var_type == sym_const){
-            fprintf(stderr, "Semantic error 5: Cannot assign to CONSTant variable\n");
+            fprintf(stderr, "Semantic error 5: Cannot assign to CONSTant variable %s\n", var_name);
             exit(5);
         }
 
@@ -719,6 +746,11 @@ void assignment_or_expression(AST *ast, ht_table_t *table){
         if (strcmp(ast->active->next->token->data, "(") == 0){
             char *fun_name = ast->active->token->data;
             ht_item_t *fun = ht_search(table, fun_name);
+            if (fun == NULL){
+                fprintf(stderr, "Semantic error: Undefined function reference '%s'\n", fun_name);
+                exit(3);
+            }
+
             fun->used = true;
 
             symtable_type_t fun_ret_type = fun->return_type;
@@ -740,7 +772,7 @@ void assignment_or_expression(AST *ast, ht_table_t *table){
             symtable_type_t expr_res_type = check_expression(ast, table);
         
             if (expr_res_type != var_type){
-                fprintf(stderr, "Semantic erorr 7: Incompatible assignment type\n");
+                fprintf(stderr, "Semantic error 7: Incompatible assignment type\n");
                 exit(7);
             }
         }
@@ -761,7 +793,6 @@ void check_function_call_args(AST *ast, ht_table_t *table){
     int idx = 0;
     while (strcmp(ast->active->token->data, ")") != 0){
         symtable_type_t arg_type;
-        // symtable_var_type_t arg_var_type;
 
         if (ast->active->token->type == identifier_token){
             ht_item_t *var_entry = ht_search(table, ast->active->token->data);
@@ -771,23 +802,18 @@ void check_function_call_args(AST *ast, ht_table_t *table){
             }
             var_entry->used = true;
             arg_type = var_entry->type;
-            // arg_var_type = sym_var;
         }
         else if (ast->active->token->type == int_token){
             arg_type = sym_int_type;
-            // arg_var_type = sym_literal;
         }
         else if (ast->active->token->type == float_token){
             arg_type = sym_float_type;
-            // arg_var_type = sym_literal;
         }
         else if (ast->active->token->type == string_token){
             arg_type = sym_string_type;
-            // arg_var_type = sym_literal;
         }
         else if (ast->active->token->type == null_token){
             arg_type = sym_null_type;
-            // arg_var_type = sym_literal;
         }
         else{
             fprintf(stderr, "Semantic error 7: Invalid argument type\n");
