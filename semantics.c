@@ -850,9 +850,6 @@ void check_function_call_args(AST *ast, ht_table_t *table, sym_stack_t *stack){
 
         symtable_type_t expected_type = expected_types[idx];
 
-        // implicit conversion from int to float ??? probably not
-
-
         if (arg_type != expected_type){
             fprintf(stderr, "Semantic error 4: Invalid argument type\n");
             exit(4);
