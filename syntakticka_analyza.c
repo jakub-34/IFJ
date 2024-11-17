@@ -384,10 +384,16 @@ token_t *return_value(token_t *token, AST *ast){
         create_node(token, ast);
         token = get_token();
         create_node(token, ast);
+        return token;
+    }
+    else if(token->type == semicolon_token){
+        create_node(token, ast);
+        return token;
     }
     else{
         token = expression(token, ast);
         create_node(token, ast);
+        return token;
     }
 
     // <RETURN_VALUE> -> ε
