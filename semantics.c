@@ -11,9 +11,11 @@
 
 /*
 TODO:
-    Check correct error numbers
+    ifj.write can take any type of argument
 
     call ht_insert with structure of arguments
+
+    Check: Expressions must account for nullable types
 
 KNOWN BUGS:
     Now doesnt support functions with returns in both if/else blocks but not in base fun block
@@ -337,11 +339,25 @@ void var_definition(AST *ast, ht_table_t *table, sym_stack_t *stack){
         else{
             res_type = check_expression(ast, table, stack);
         }
-        
-        // expression result type (function call return type) is different from defined type
-        if (res_type != type){
-            fprintf(stderr, "Semantic error 7: Type of expression is different from defined type\n");
-            exit(7);
+
+        // Check if expression is null
+        if (res_type == sym_null_type){
+            if (type == sym_int_type || type == sym_float_type || type == sym_string_type){
+                fprintf(stderr, "Semantic error 7: Cannot assign null to this type of variable\n");
+                exit(7);
+            }
+        }
+        // Check for string
+        else if (res_type == sym_string_type){
+                fprintf(stderr, "Semantic error 7: Cannot assign string like this, must use ifj.string fun\n");
+                exit(7);
+        }
+        else{
+            // expression result type (function call return type) is different from defined type
+            if (res_type != type && (res_type+1) != type){
+                fprintf(stderr, "Semantic error 7: Type of expression is different from defined type\n");
+                exit(7);
+            }
         }
     }
     // Have to derive the type from assignment expression
@@ -373,6 +389,11 @@ void var_definition(AST *ast, ht_table_t *table, sym_stack_t *stack){
             }
 
             type = check_expression(ast, table, stack);
+
+            if (type == sym_string_type){
+                fprintf(stderr, "Semantic error 8: Invalid expressing type, cannot asign string to var: %s\n", identifier);
+                exit(8);
+            }
         }
     }
 
@@ -493,10 +514,6 @@ symtable_type_t check_expression(AST *ast, ht_table_t *table, sym_stack_t *stack
         else if (strcmp(ast->active->token->data, "<") == 0 || strcmp(ast->active->token->data, ">") == 0 ||
                 strcmp(ast->active->token->data, "<=") == 0 || strcmp(ast->active->token->data, ">=") == 0 ||
                 strcmp(ast->active->token->data, "==") == 0 || strcmp(ast->active->token->data, "!=") == 0){
-            if (stack_top < 1){
-                fprintf(stderr, "Semantic error 7: Not enough operands for operator '%s'\n", ast->active->token->data);
-                exit(7);
-            }
 
             ht_item_t right = type_stack[stack_top--];
             ht_item_t left = type_stack[stack_top--];
@@ -557,11 +574,6 @@ symtable_type_t check_expression(AST *ast, ht_table_t *table, sym_stack_t *stack
         next_node(ast);
     }
 
-    // Just in case 
-    if (stack_top < 0){
-        fprintf(stderr, "Semantic error: Invalid Expression\n");
-        exit(7);
-    }
     type = type_stack[stack_top].type;
     return type;
 }
@@ -719,8 +731,8 @@ void assignment_or_expression(AST *ast, ht_table_t *table, sym_stack_t *stack){
         char *fun_name = ast->active->token->data;
         ht_item_t *fun = get_item(stack, table, fun_name);
         if (fun == NULL){
-            fprintf(stderr, "Semantic error : Undefined function reference\n");
-            exit(3);            // TODO: check this error code
+            fprintf(stderr, "Semantic error 3: Undefined function reference\n");
+            exit(3);
         }
         fun->used = true;
 
@@ -738,7 +750,7 @@ void assignment_or_expression(AST *ast, ht_table_t *table, sym_stack_t *stack){
         var->modified = true;
         
         if (var->var_type == sym_const){
-            fprintf(stderr, "Semantic error 5: Cannot assign to CONSTant variable %s\n", var_name);
+            fprintf(stderr, "Semantic error 5: Cannot modify variable %s of type const\n", var_name);
             exit(5);
         }
 
@@ -762,10 +774,10 @@ void assignment_or_expression(AST *ast, ht_table_t *table, sym_stack_t *stack){
             symtable_type_t fun_ret_type = fun->return_type;
 
             if (fun_ret_type == sym_void_type){
-                fprintf(stderr, "Semantic erorr 7: Assignment from function that doesnt return anything\n");
+                fprintf(stderr, "Semantic erorr 7: Assignment from function '%s' that doesnt return anything\n", fun->name);
                 exit(7);
             }
-            else if (fun_ret_type != var_type && strcmp(var_name, "_") != 0){
+            else if (fun_ret_type != var_type && fun_ret_type+1 != var_type && strcmp(var_name, "_") != 0){
                 fprintf(stderr, "Semantic erorr 7: Incompatible types when assigning from function\n");
                 exit(7);
             }
@@ -776,10 +788,20 @@ void assignment_or_expression(AST *ast, ht_table_t *table, sym_stack_t *stack){
         // Its an expression assignment
         else{
             symtable_type_t expr_res_type = check_expression(ast, table, stack);
-        
-            if (expr_res_type != var_type){
-                fprintf(stderr, "Semantic error 7: Incompatible assignment type\n");
-                exit(7);
+
+            // Check if expression is null
+            if (expr_res_type == sym_null_type){
+                if (var_type == sym_int_type || var_type == sym_float_type || var_type == sym_string_type){
+                    fprintf(stderr, "Semantic error 7: Cannot assign null to this type of variable\n");
+                    exit(7);
+                }
+            }
+            
+            else{
+                if (var_type != expr_res_type && var_type != (expr_res_type+1) && strcmp(var_name, "_") != 0){
+                    fprintf(stderr, "Semantic error 7: Incompatible assignment type\n");
+                    exit(7);
+                }
             }
         }
     }
@@ -822,8 +844,8 @@ void check_function_call_args(AST *ast, ht_table_t *table, sym_stack_t *stack){
             arg_type = sym_null_type;
         }
         else{
-            fprintf(stderr, "Semantic error 7: Invalid argument type\n");
-            exit(7);
+            fprintf(stderr, "Semantic error 4: Invalid argument type\n");   // idk: maybe unnecessarry
+            exit(4);
         }
 
         symtable_type_t expected_type = expected_types[idx];
@@ -832,8 +854,8 @@ void check_function_call_args(AST *ast, ht_table_t *table, sym_stack_t *stack){
 
 
         if (arg_type != expected_type){
-            fprintf(stderr, "Semantic error 7: Invalid argument type\n");
-            exit(7);
+            fprintf(stderr, "Semantic error 4: Invalid argument type\n");
+            exit(4);
         }
 
         idx++;
