@@ -12,41 +12,23 @@ int main(){
     sym_stack_t stack;
     sym_stack_init(&stack);
 
-    ht_insert(&table, "ahoj", sym_int_type, true, 0);
+    ht_insert(&table, "ahoj", sym_int_type, false, 0);
     new_scope(&stack, &table);
-    ht_insert(&table, "cau", sym_int_type, true, 0);
 
     ht_item_t *item = get_item(&stack, &table, "ahoj");
     if(item != NULL){
-        printf("Ahojfound\n");
-    }
-    else{
-        printf("Ahoj not found\n");
-    }
-
-    item = get_item(&stack, &table, "cau");
-    if(item != NULL){
-        printf("Cau found\n");
-    }
-    else{
-        printf("Cau not found\n");
+        item->used = true;
     }
 
     leave_scope(&stack, &table);
-    
     item = get_item(&stack, &table, "ahoj");
     if(item != NULL){
-        printf("Ahojfound\n");
-    }
-    else{
-        printf("Ahoj not found\n");
+        if(item->used == true){
+            printf("Item was used\n");
+        } else {
+            printf("Item was not used\n");
+        }
     }
 
-    item = get_item(&stack, &table, "cau");
-    if(item != NULL){
-        printf("Cau found\n");
-    }
-    else{
-        printf("Cau not found\n");
-    }
+    ht_delete_all(&table);
 }
