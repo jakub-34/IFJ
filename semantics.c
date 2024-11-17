@@ -17,7 +17,10 @@ TODO:
 
     Is valid: "return foo(x);"? If so... we dont account for it yet
 
-    Fix missing return
+    Fix missing expression after return
+
+    Now only checks if there is a return keyword in the whole non-void function -> 
+        maybe make it check that the return is outside of while body and if/else body or in both if and else(using more static bools)
 */
 
 // Global variable for keeping the current function name
@@ -231,6 +234,7 @@ void analyze_code(AST *ast, ht_table_t *table, sym_stack_t *stack){
     while(ast->active != NULL && ast->active->token->type != eof_token){
         // For keeping track of scopes, so we can check missing return
         static int scope_cnt = 0;
+        static bool found_return = false;
 
         if (strcmp(ast->active->token->data, "var") == 0 || strcmp(ast->active->token->data, "const") == 0){
             var_definition(ast, table, stack);
@@ -240,17 +244,19 @@ void analyze_code(AST *ast, ht_table_t *table, sym_stack_t *stack){
             new_scope_if_while(ast, table, stack);
         }
         else if (strcmp(ast->active->token->data, "else") == 0){
+            scope_cnt++;
             new_scope(stack, table);
             next_node(ast); // skip else
             next_node(ast); // skip {
         }
         else if (strcmp(ast->active->token->data, "pub") == 0){
             scope_cnt++;
+            found_return = false;
             new_scope_function(ast, table, stack);
         }
         else if (strcmp(ast->active->token->data, "}") == 0){
             scope_cnt--;
-            if (scope_cnt == 0){
+            if (scope_cnt == 0 && !found_return){
                 ht_item_t *fun = get_item(stack, table, current_function_name);
 
                 if (fun->return_type != sym_void_type){
@@ -262,7 +268,7 @@ void analyze_code(AST *ast, ht_table_t *table, sym_stack_t *stack){
             next_node(ast);
         }
         else if (strcmp(ast->active->token->data, "return") == 0){
-            scope_cnt--;
+            found_return = true;
             check_return_expr(ast, table, stack);
         }
         else if (ast->active->token->type == identifier_token){
