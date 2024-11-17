@@ -1,3 +1,16 @@
+// EXAMPLES ARE SEMANTICALLY INCORRECT!!!!
+
+
+
+// Segfault
+
+const ifj = @import("ifj24.zig");
+
+pub fn main() void {
+    return;
+}
+
+/////////////////////////////
 
 // SYNTAX ERROR 8
 const ifj = @import("ifj24.zig");
