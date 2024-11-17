@@ -15,8 +15,8 @@ TODO:
 
     call ht_insert with structure of arguments
 
-    Now only checks if there is a return keyword in the whole non-void function -> 
-        maybe make it check that the return is outside of while body and if/else body or in both if and else(using more static bools)
+KNOWN BUGS:
+    Now doesnt support functions with returns in both if/else blocks but not in base fun block
 */
 
 // Global variable for keeping the current function name
@@ -266,7 +266,10 @@ void analyze_code(AST *ast, ht_table_t *table, sym_stack_t *stack){
             next_node(ast);
         }
         else if (strcmp(ast->active->token->data, "return") == 0){
-            found_return = true;
+            // Set to true only when finding return in the base function block
+            if (scope_cnt == 1){
+                found_return = true;
+            }
             check_return_expr(ast, table, stack);
         }
         else if (ast->active->token->type == identifier_token){
