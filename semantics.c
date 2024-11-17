@@ -15,10 +15,6 @@ TODO:
 
     call ht_insert with structure of arguments
 
-    Is valid: "return foo(x);"? If so... we dont account for it yet
-
-    Fix missing expression after return
-
     Now only checks if there is a return keyword in the whole non-void function -> 
         maybe make it check that the return is outside of while body and if/else body or in both if and else(using more static bools)
 */
@@ -29,6 +25,7 @@ char *current_function_name;
 // Function declarations
 void get_fun_declarations(AST *ast, ht_table_t *table);
 void save_fun_dec(AST *ast, ht_table_t *table);
+void get_builtin_fun_declarations(ht_table_t *table);
 void analyze_code(AST *ast, ht_table_t *table, sym_stack_t *stack);
 void var_definition(AST *ast, ht_table_t *table, sym_stack_t *stack);
 symtable_type_t check_expression(AST *ast, ht_table_t *table, sym_stack_t *stack);
@@ -69,6 +66,7 @@ void semantic_analysis(AST *ast){
 
 
     ht_insert(&table, "_", sym_void_type, sym_var, true, true, -1, NULL, sym_void_type);
+    get_builtin_fun_declarations(&table);
 
     ast->active = ast->root;
     analyze_code(ast, &table, &stack);
@@ -176,9 +174,7 @@ void save_fun_dec(AST *ast, ht_table_t *table){
     next_node(ast); // skip {
 }
 
-/***************************************************** MAIN FUNCTION *************************************************************/
-void analyze_code(AST *ast, ht_table_t *table, sym_stack_t *stack){
-
+void get_builtin_fun_declarations(ht_table_t *table){
     ht_insert(table, "ifj$readstr", sym_func_type, sym_const, true, true, 0, NULL, sym_nullable_string_type);
 
     ht_insert(table, "ifj$readi32", sym_func_type, sym_const, true, true, 0, NULL, sym_nullable_int_type);
@@ -229,10 +225,12 @@ void analyze_code(AST *ast, ht_table_t *table, sym_stack_t *stack){
     symtable_type_t *ifjchr_params = malloc(sizeof(symtable_type_t) * 1);
     ifjchr_params[0] = sym_int_type;    
     ht_insert(table, "ifj$chr", sym_func_type, sym_const, true, true, 1, ifjchr_params, sym_string_type);
-    
-/************************************** MAIN LOOP *************************************************/
+}
+
+/***************************************************** MAIN FUNCTION *************************************************************/
+void analyze_code(AST *ast, ht_table_t *table, sym_stack_t *stack){
     while(ast->active != NULL && ast->active->token->type != eof_token){
-        // For keeping track of scopes, so we can check missing return
+        // For keeping track of scopes, so we can check missing return keyword
         static int scope_cnt = 0;
         static bool found_return = false;
 
@@ -677,13 +675,31 @@ void new_scope_function(AST *ast, ht_table_t *table, sym_stack_t *stack){
 // (DOESNT leave scope, that will happen next time it goes through while)
 void check_return_expr(AST *ast, ht_table_t *table, sym_stack_t *stack){
     next_node(ast); // skip return
-    symtable_type_t expr_type = check_expression(ast, table, stack);
+    
     ht_item_t *fun_entry = get_item(stack, table, current_function_name);
     symtable_type_t current_function_type = fun_entry->return_type;
+
+    // Check for "return;"
+    if (ast->active->token->type == semicolon_token){
+        if(current_function_type != sym_void_type){
+            fprintf(stderr, "Semantic error 6: Missing expression in function return\n");
+            exit(6);
+        }
+
+        next_node(ast); // skip ;
+        return;
+    }
+
+    if (current_function_type == sym_void_type){
+        fprintf(stderr, "Semantic error 6: Returning expression in a function with void return type\n");
+        exit(6);
+    }
+
+    symtable_type_t expr_type = check_expression(ast, table, stack);
     
     if (expr_type != current_function_type){
-        fprintf(stderr, "Semantic error 7: Function '%s' return type mismatch.\n", current_function_name);
-        exit(7);
+        fprintf(stderr, "Semantic error 4: Function '%s' return type mismatch.\n", current_function_name);
+        exit(4);
     }
     
     next_node(ast); // skip ;
