@@ -357,9 +357,14 @@ token_t *return_value(token_t *token){
 
     if(token->type == null_token){
         token = get_token();
+        return token;
+    }
+    else if(token->type == semicolon_token){
+        return token;
     }
     else{
         token = expression(token);
+        return token;
     }
 
     // <RETURN_VALUE> -> ε
