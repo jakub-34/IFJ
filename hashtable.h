@@ -3,7 +3,7 @@
 
 #include <stdbool.h>
 
-// DONT CHANGE ORDER IN ENUM! (nullable types always must be)
+// For types of variables and other helpful types (changing order might break something, do with caution)
 typedef enum symtable_type{
   sym_int_type,
   sym_nullable_int_type,
@@ -13,17 +13,19 @@ typedef enum symtable_type{
   sym_nullable_string_type,
   sym_func_type,
   // until this are types used for type of identifier
-  sym_null_type,
+  sym_null_type,  // type for null value
   sym_void_type,  // for type of return value
   sym_bool_type   // for condition result
 }symtable_type_t;
 
+// Type for modifiable, constatnt variables and literals
 typedef enum symtable_var_type{
   sym_var,
   sym_const,
   sym_literal
 }symtable_var_type_t;
 
+// Item in symtable
 typedef struct ht_item {
   char *name;
   symtable_type_t type;
@@ -36,6 +38,7 @@ typedef struct ht_item {
   struct ht_item *next;
 } ht_item_t;
 
+// Symtable itself
 typedef struct ht_table {
     ht_item_t **items;
     int size;
@@ -63,6 +66,7 @@ void ht_delete(ht_table_t *table, char *name);
 // Also checking unused variable semantic error
 void ht_delete_all(ht_table_t *table);
 
+// Prints out all items of symtable of current scope
 void ht_print(ht_table_t *table);
 
 #endif
