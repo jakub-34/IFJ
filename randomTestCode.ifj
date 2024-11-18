@@ -1,8 +1,8 @@
-// EXAMPLES ARE SEMANTICALLY INCORRECT!!!!
+// MOST OF THE EXAMPLES ARE SEMANTICALLY INCORRECT!!!!
 
 
 
-// Segfault
+// Segfault     - FIXED
 
 const ifj = @import("ifj24.zig");
 
@@ -12,24 +12,24 @@ pub fn main() void {
 
 /////////////////////////////
 
-// SYNTAX ERROR 8
+// SYNTAX ERROR 8       - FIXED
 const ifj = @import("ifj24.zig");
 
 
 pub fn main() void {
     var x = 5;
     var c = x + 2;
-    var y = z(a, b);
+    // var y = z(a, b);
 }
 
 ////////////////////////////
 
-// Token type error, when correct, should print out "YES"
+// Token type error, when correct, should print out "YES"       - FIXED
 const ifj = @import("ifj24.zig");
 
 pub fn main() void{
-    var x = null;
-    var n = null;
+    const x:?i32= null;
+    const n:?i32 = null;
     if (x == n) {
         ifj.write("YES");
         ifj.write("\n");
