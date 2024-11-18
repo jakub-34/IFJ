@@ -111,6 +111,8 @@ void process_rule(const char *rule, bts_Stack *stack) {
         //printf("rule: E -> E >= E\n");
         bts_append(stack,  ">=");
     } else {
+        fprintf(stderr, "Syntax error \n");
+        exit(2);
         //printf("rule unknown\n");
     }
 }
