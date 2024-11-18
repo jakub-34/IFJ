@@ -207,7 +207,7 @@ token_t* expression(token_t *token, AST *ast){
         }
 
         //input check
-        if(correct_input == false){
+        if(correct_input == false && strcmp(token->data, ";") != 0){
             fprintf(stderr, "Syntax error \n");
             exit(2);
         }
