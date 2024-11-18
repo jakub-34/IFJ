@@ -11,16 +11,11 @@
 
 /*
 TODO:
-    Check builtins correct
-
     call ht_insert with structure of arguments
-
-    Check: Expressions must account for nullable types
-
-    operators != and == doesnt work for nullable types
 
 KNOWN BUGS:
     Now doesnt support functions with returns in both if/else blocks but not in base fun block
+    Cant convert 5.0 to int
 */
 
 // Global variable for keeping the current function name
@@ -38,7 +33,7 @@ void new_scope_function(AST *ast, ht_table_t *table, sym_stack_t *stack);
 void check_return_expr(AST *ast, ht_table_t *table, sym_stack_t *stack);
 void assignment_or_expression(AST *ast, ht_table_t *table, sym_stack_t *stack);
 void check_function_call_args(AST *ast, ht_table_t *table, sym_stack_t *stack);
-bool check_types_compatibiility(symtable_type_t expected_type, symtable_type_t actual_type);
+bool check_types_compatibility(symtable_type_t expected_type, symtable_type_t actual_type);
 
 // Starting function
 void semantic_analysis(AST *ast){
@@ -179,6 +174,7 @@ void save_fun_dec(AST *ast, ht_table_t *table){
     next_node(ast); // skip {
 }
 
+// Generates built-in functions declarations
 void get_builtin_fun_declarations(ht_table_t *table){
     ht_insert(table, "ifj$readstr", sym_func_type, sym_const, true, true, 0, NULL, sym_nullable_string_type);
 
@@ -220,7 +216,7 @@ void get_builtin_fun_declarations(ht_table_t *table){
     symtable_type_t *ifjcmp_params = malloc(sizeof(symtable_type_t) * 2);
     ifjcmp_params[0] = sym_string_type;
     ifjcmp_params[1] = sym_string_type;
-    ht_insert(table, "ifj$cmp", sym_func_type, sym_const, true, true, 2, ifjcmp_params, sym_int_type);
+    ht_insert(table, "ifj$strcmp", sym_func_type, sym_const, true, true, 2, ifjcmp_params, sym_int_type);
 
     symtable_type_t *ifjord_params = malloc(sizeof(symtable_type_t) * 2);
     ifjord_params[0] = sym_string_type;
@@ -347,22 +343,10 @@ void var_definition(AST *ast, ht_table_t *table, sym_stack_t *stack){
             res_type = check_expression(ast, table, stack);
         }
 
-        // Check if expression is null
-        if (res_type == sym_null_type){
-            if (type == sym_int_type || type == sym_float_type || type == sym_string_type){
-                fprintf(stderr, "Semantic error 7: Cannot assign null to this type of variable\n");
-                exit(7);
-            }
-        }
-        // Check for string
-        else if (res_type == sym_string_type){
-                fprintf(stderr, "Semantic error 7: Cannot assign string like this, must use ifj.string fun\n");
-                exit(7);
-        }
-        else{
-            // expression result type (function call return type) is different from defined type
-            if (res_type != type && (res_type+1) != type){
-                fprintf(stderr, "Semantic error 7: Type of expression is different from defined type\n");
+        // expression result type (function call return type) is incompatible with defined type
+        if (res_type != type){
+            if(!check_types_compatibility(type, res_type)){
+                fprintf(stderr, "Semantic error 7: Type of expression (function call return type) is incompatible with defined type\n");
                 exit(7);
             }
         }
@@ -380,7 +364,6 @@ void var_definition(AST *ast, ht_table_t *table, sym_stack_t *stack){
                 fprintf(stderr, "Semantic error 3: Undefined function reference\n");
                 exit(3);
             }
-            
             type = fun->return_type;
             fun->used = true;
 
@@ -456,8 +439,9 @@ symtable_type_t check_expression(AST *ast, ht_table_t *table, sym_stack_t *stack
             type_stack[stack_top].var_type = sym_var;
 
         }
-        else if (strcmp(ast->active->token->data, "+") == 0 || strcmp(ast->active->token->data, "-") == 0  || strcmp(ast->active->token->data, "*") == 0  || strcmp(ast->active->token->data, "/") == 0 ){
-            ht_item_t right= type_stack[stack_top--];
+        // Binary arithmetic operations
+        else if (strcmp(ast->active->token->data, "+") == 0 || strcmp(ast->active->token->data, "-") == 0  || strcmp(ast->active->token->data, "*") == 0  || strcmp(ast->active->token->data, "/") == 0){
+            ht_item_t right = type_stack[stack_top--];
             ht_item_t left = type_stack[stack_top--];
 
             symtable_type_t right_type = right.type;
@@ -474,6 +458,15 @@ symtable_type_t check_expression(AST *ast, ht_table_t *table, sym_stack_t *stack
             // Both operands are variables
             if(left_var_type != sym_literal && right_var_type != sym_literal){
                 if(left_type == right_type){
+                    if (left_type == sym_nullable_int_type || left_type == sym_nullable_float_type ||
+                        left_type == sym_nullable_string_type || left_type == sym_null_type){
+                        fprintf(stderr, "Semantic error 7: Cannot perform arithmetic operations with nullable types\n");
+                        exit(7);
+                    }
+                    else if (left_type == sym_string_type){
+                        fprintf(stderr, "Semantic error 7: Cannot perform arithmetic operations with []u8 types\n");
+                        exit(7);
+                    }
                     result_type = left_type;
                 }
                 else{
@@ -488,7 +481,11 @@ symtable_type_t check_expression(AST *ast, ht_table_t *table, sym_stack_t *stack
                 symtable_type_t var_type = (left_var_type != sym_literal) ? left_type : right_type;
                 symtable_type_t const_type = (left_var_type == sym_literal) ? left_type : right_type;
 
-                if (var_type == const_type){
+                if (var_type == sym_string_type){
+                    fprintf(stderr, "Semantic error 7: Cannot perform arithmetic operations with strings\n");
+                    exit(7);
+                }
+                else if (var_type == const_type){
                     result_type = var_type;
                 }
                 else if (var_type == sym_float_type && const_type == sym_int_type){
@@ -501,7 +498,6 @@ symtable_type_t check_expression(AST *ast, ht_table_t *table, sym_stack_t *stack
                 result_var_type = sym_var;
             }
             // Both operands are literal constants
-            // Conversion is allowed
             else if (left_var_type == sym_literal && right_var_type == sym_literal){
                 if (left_type == sym_int_type && right_type == sym_int_type){
                     result_type = sym_int_type;
@@ -523,9 +519,9 @@ symtable_type_t check_expression(AST *ast, ht_table_t *table, sym_stack_t *stack
             type_stack[++stack_top].type = result_type;
             type_stack[stack_top].var_type = result_var_type;
         }
+        // Relational operation
         else if (strcmp(ast->active->token->data, "<") == 0 || strcmp(ast->active->token->data, ">") == 0 ||
-                strcmp(ast->active->token->data, "<=") == 0 || strcmp(ast->active->token->data, ">=") == 0 ||
-                strcmp(ast->active->token->data, "==") == 0 || strcmp(ast->active->token->data, "!=") == 0){
+                strcmp(ast->active->token->data, "<=") == 0 || strcmp(ast->active->token->data, ">=") == 0){
 
             ht_item_t right = type_stack[stack_top--];
             ht_item_t left = type_stack[stack_top--];
@@ -539,45 +535,144 @@ symtable_type_t check_expression(AST *ast, ht_table_t *table, sym_stack_t *stack
             symtable_type_t result_type = sym_bool_type;
             symtable_var_type_t result_var_type = sym_literal;
 
-            if (left_type == right_type){
-                // Types match
-                // Check if operator is valid for the type
-                if (left_type == sym_int_type || left_type == sym_float_type){
-                    // Numeric types; all relational operators are allowed
-                }
-                else if (left_type == sym_string_type){
-                    // For strings, only '==' and '!=' are allowed
-                    if (strcmp(ast->active->token->data, "==") == 0 || strcmp(ast->active->token->data, "!=") == 0){
-                        // Operation is allowed
+            // Both operands are variables
+            if(left_var_type != sym_literal && right_var_type != sym_literal){
+                if (left_type == right_type){
+                    if (left_type == sym_nullable_int_type || left_type == sym_nullable_float_type ||
+                        left_type == sym_nullable_string_type || left_type == sym_null_type){
+                        fprintf(stderr, "Semantic error 7: Cannot perform relational operations with nullable types\n");
+                        exit(7);
                     }
-                    else {
-                        fprintf(stderr, "Semantic error 7: Operator '%s' not allowed for strings\n", ast->active->token->data);
+                    else if (left_type == sym_string_type){
+                        fprintf(stderr, "Semantic error 7: Cannot perform relational operations with []u8 types\n");
                         exit(7);
                     }
                 }
-                // else {
-                //     fprintf(stderr, "Semantic error 7: Operator '%s' not allowed for this type\n", ast->active->token->data);
-                //     exit(7);
-                // }
-            }
-            else if ((left_type == sym_int_type && right_type == sym_float_type) ||
-                    (left_type == sym_float_type && right_type == sym_int_type)){
-                // One operand is int, the other is float
-                // Implicit conversion rules apply
-                if (left_var_type == sym_literal || right_var_type == sym_literal){
-                    // At least one operand is a literal constant; implicit conversion allowed
-                    // Promote int to float where necessary
-                }
-                else {
-                    // Both operands are variables; implicit conversion not allowed
-                    fprintf(stderr, "Semantic error 7: Implicit conversion not allowed between variables\n");
+                else{
+                    fprintf(stderr, "Semantic error 7: Incompatible types between variables\n");
                     exit(7);
                 }
+                result_var_type = sym_var;
             }
-            else {
-                fprintf(stderr, "Semantic error 7: Incompatible types in relational expression\n");
-                exit(7);
+            else if ((left_var_type != sym_literal && right_var_type == sym_literal) || (left_var_type == sym_literal && right_var_type != sym_literal)){
+                symtable_type_t var_type = (left_var_type != sym_literal) ? left_type : right_type;
+                symtable_type_t const_type = (left_var_type == sym_literal) ? left_type : right_type;
+                
+                if (var_type == sym_string_type){
+                    fprintf(stderr, "Semantic error 7: Cannot perform arithmetic operations with strings\n");
+                    exit(7);
+                }
+                else if (var_type == const_type){
+                    // Nothing needs to be done
+                }
+                else if (var_type == sym_float_type && const_type == sym_int_type){
+                    // Nothing needs to be done
+                }
+                else {
+                    fprintf(stderr, "Semantic error 7: Incompatible types between variable and literal\n");
+                    exit(7);
+                }
+                result_var_type = sym_var;
             }
+            // Both are literals
+            else{
+                if (left_type == sym_int_type && right_type == sym_int_type){
+                    // Nothing needs to be done
+                }
+                else if ((left_type == sym_int_type && right_type == sym_float_type) || (left_type == sym_float_type && right_type == sym_int_type) || (left_type == sym_float_type && right_type == sym_float_type)){
+                    // Nothing needs to be done
+                }
+                else {
+                    fprintf(stderr, "Semantic error 7: Incompatible types between literals\n");
+                    exit(7);
+                }
+                result_var_type = sym_literal;
+            }
+            result_type = sym_bool_type;
+
+            // Push the result back onto the stack
+            type_stack[++stack_top].type = result_type;
+            type_stack[stack_top].var_type = result_var_type;
+        }
+        else if (strcmp(ast->active->token->data, "==") == 0 || strcmp(ast->active->token->data, "!=") == 0){
+            ht_item_t right = type_stack[stack_top--];
+            ht_item_t left = type_stack[stack_top--];
+
+            symtable_type_t right_type = right.type;
+            symtable_type_t left_type = left.type;
+
+            symtable_var_type_t right_var_type = right.var_type;
+            symtable_var_type_t left_var_type = left.var_type;
+
+            symtable_type_t result_type = sym_bool_type;
+            symtable_var_type_t result_var_type = sym_literal;
+
+            // Both operands are variables
+            if(left_var_type != sym_literal && right_var_type != sym_literal){
+                if (left_type == right_type){
+                    if (left_type == sym_nullable_string_type || left_type == sym_string_type){
+                        fprintf(stderr, "Semantic error 7: Cannot perform relational operations with []u8 types\n");
+                        exit(7);
+                    }
+                }
+                else if ((left_type == sym_int_type && right_type == sym_nullable_int_type) || (right_type == sym_int_type && left_type == sym_nullable_int_type) ||
+                    (left_type == sym_float_type && right_type == sym_nullable_float_type) || (right_type == sym_float_type && left_type == sym_nullable_float_type)){
+                    // Correct and nothing needs to be done
+                }
+                else{
+                    fprintf(stderr, "Semantic error 7: Incompatible types between variables\n");
+                    exit(7);
+                }
+                result_var_type = sym_var;
+            }
+            else if ((left_var_type != sym_literal && right_var_type == sym_literal) || (left_var_type == sym_literal && right_var_type != sym_literal)){
+                symtable_type_t var_type = (left_var_type != sym_literal) ? left_type : right_type;
+                symtable_type_t const_type = (left_var_type == sym_literal) ? left_type : right_type;
+                
+                if (var_type == sym_string_type){
+                    fprintf(stderr, "Semantic error 7: Cannot perform arithmetic operations with strings\n");
+                    exit(7);
+                }
+                else if (var_type == const_type){
+                    // Nothing needs to be done
+                }
+                else if (var_type == sym_float_type && const_type == sym_int_type){
+                    // Nothing needs to be done
+                }
+                else if (var_type == sym_nullable_int_type && const_type == sym_int_type){
+                    // Nothing needs to be done
+                }
+                else if (var_type == sym_nullable_float_type && const_type == sym_float_type){
+                    // Nothing needs to be done
+                }
+                else if (const_type == sym_null_type && 
+                    (var_type == sym_nullable_int_type || var_type == sym_nullable_float_type || var_type == sym_nullable_string_type)){
+                    // Nothing needs to be done
+                    }
+                else {
+                    fprintf(stderr, "Semantic error 7: Incompatible types between variable and literal\n");
+                    exit(7);
+                }
+                result_var_type = sym_var;
+            }
+            // Both are literals
+            else{
+                if (left_type == sym_int_type && right_type == sym_int_type){
+                    // Nothing needs to be done
+                }
+                else if ((left_type == sym_int_type && right_type == sym_float_type) || (left_type == sym_float_type && right_type == sym_int_type) || (left_type == sym_float_type && right_type == sym_float_type)){
+                    // Nothing needs to be done
+                }
+                else if (left_type == sym_null_type && right_type == sym_null_type){
+                    // Nothing needs to be done
+                }
+                else {
+                    fprintf(stderr, "Semantic error 7: Incompatible types between literals\n");
+                    exit(7);
+                }
+                result_var_type = sym_literal;
+            }
+            result_type = sym_bool_type;
 
             // Push the result back onto the stack
             type_stack[++stack_top].type = result_type;
@@ -592,9 +687,9 @@ symtable_type_t check_expression(AST *ast, ht_table_t *table, sym_stack_t *stack
 
 // Creates new scope for if/while and defines new variable if there is while/if extension
 void new_scope_if_while(AST *ast, ht_table_t *table, sym_stack_t *stack){
-    
+
     new_scope(stack, table);
-    
+
     next_node(ast); // skip while/if
     next_node(ast); // skip (
 
@@ -723,9 +818,9 @@ void check_return_expr(AST *ast, ht_table_t *table, sym_stack_t *stack){
     }
 
     symtable_type_t expr_type = check_expression(ast, table, stack);
-    
+
     if (expr_type != current_function_type){
-        if (!check_types_compatibiility(current_function_type, expr_type)){
+        if (!check_types_compatibility(current_function_type, expr_type)){
             fprintf(stderr, "Semantic error 4: Function '%s' return type mismatch.\n", current_function_name);
             exit(4);
         }
@@ -773,7 +868,6 @@ void assignment_or_expression(AST *ast, ht_table_t *table, sym_stack_t *stack){
         next_node(ast); // skip var_name
         next_node(ast); // skip =
 
-
         // Its a function assignment
         if (strcmp(ast->active->next->token->data, "(") == 0){
             char *fun_name = ast->active->token->data;
@@ -791,9 +885,11 @@ void assignment_or_expression(AST *ast, ht_table_t *table, sym_stack_t *stack){
                 fprintf(stderr, "Semantic erorr 7: Assignment from function '%s' that doesnt return anything\n", fun->name);
                 exit(7);
             }
-            else if (fun_ret_type != var_type && fun_ret_type+1 != var_type && strcmp(var_name, "_") != 0){
-                fprintf(stderr, "Semantic erorr 7: Incompatible types when assigning from function\n");
-                exit(7);
+            else if (fun_ret_type != var_type && strcmp(var_name, "_") != 0){
+                if (!check_types_compatibility(var_type, fun_ret_type)){
+                    fprintf(stderr, "Semantic erorr 7: Incompatible types when assigning from function\n");
+                    exit(7);
+                }
             }
 
             check_function_call_args(ast, table, stack);
@@ -802,17 +898,9 @@ void assignment_or_expression(AST *ast, ht_table_t *table, sym_stack_t *stack){
         // Its an expression assignment
         else{
             symtable_type_t expr_res_type = check_expression(ast, table, stack);
-
-            // Check if expression is null
-            if (expr_res_type == sym_null_type){
-                if (var_type == sym_int_type || var_type == sym_float_type || var_type == sym_string_type){
-                    fprintf(stderr, "Semantic error 7: Cannot assign null to this type of variable\n");
-                    exit(7);
-                }
-            }
             
-            else{
-                if (var_type != expr_res_type && var_type != (expr_res_type+1) && strcmp(var_name, "_") != 0){
+            if (var_type != expr_res_type && strcmp(var_name, "_") != 0){
+                if (!check_types_compatibility(var_type, expr_res_type)){
                     fprintf(stderr, "Semantic error 7: Incompatible assignment type\n");
                     exit(7);
                 }
@@ -857,29 +945,15 @@ void check_function_call_args(AST *ast, ht_table_t *table, sym_stack_t *stack){
         else if (ast->active->token->type == null_token){
             arg_type = sym_null_type;
         }
-        else{
-            fprintf(stderr, "Semantic error 4: Invalid argument type\n");   // idk: maybe unnecessarry
-            exit(4);
-        }
 
         symtable_type_t expected_type = expected_types[idx];
 
-        // Check for null as argument
-        if (arg_type == sym_null_type){
-            if (expected_type != sym_nullable_int_type &&
-                expected_type != sym_nullable_float_type &&
-                expected_type != sym_nullable_string_type){
+
+        // Check for correct argument type
+        if (arg_type != expected_type && expected_type != sym_void_type){
+            if (!check_types_compatibility(expected_type, arg_type)){
                 fprintf(stderr, "Semantic error 4: Invalid argument type\n");
                 exit(4);
-            }
-        }
-        // Check for non-null arguments
-        else {
-            if (arg_type != expected_type && expected_type != sym_void_type){
-                if (!check_types_compatibiility(expected_type, arg_type)){
-                    fprintf(stderr, "Semantic error 4: Invalid argument type\n");
-                    exit(4);
-                }
             }
         }
 
@@ -899,7 +973,8 @@ void check_function_call_args(AST *ast, ht_table_t *table, sym_stack_t *stack){
 }
 
 // For checking compatibility with nullable types
-bool check_types_compatibiility(symtable_type_t expected_type, symtable_type_t actual_type){
+// Can use only when the types are different
+bool check_types_compatibility(symtable_type_t expected_type, symtable_type_t actual_type){
     if (expected_type == sym_int_type){
         return false;
     }
