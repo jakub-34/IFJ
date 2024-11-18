@@ -11,6 +11,8 @@
 
 /*
 TODO:
+    Check builtins correct
+
     call ht_insert with structure of arguments
 
     Check: Expressions must account for nullable types
@@ -36,6 +38,7 @@ void new_scope_function(AST *ast, ht_table_t *table, sym_stack_t *stack);
 void check_return_expr(AST *ast, ht_table_t *table, sym_stack_t *stack);
 void assignment_or_expression(AST *ast, ht_table_t *table, sym_stack_t *stack);
 void check_function_call_args(AST *ast, ht_table_t *table, sym_stack_t *stack);
+bool check_types_compatibiility(symtable_type_t expected_type, symtable_type_t actual_type);
 
 // Starting function
 void semantic_analysis(AST *ast){
@@ -722,8 +725,10 @@ void check_return_expr(AST *ast, ht_table_t *table, sym_stack_t *stack){
     symtable_type_t expr_type = check_expression(ast, table, stack);
     
     if (expr_type != current_function_type){
-        fprintf(stderr, "Semantic error 4: Function '%s' return type mismatch.\n", current_function_name);
-        exit(4);
+        if (!check_types_compatibiility(current_function_type, expr_type)){
+            fprintf(stderr, "Semantic error 4: Function '%s' return type mismatch.\n", current_function_name);
+            exit(4);
+        }
     }
     
     next_node(ast); // skip ;
@@ -859,9 +864,23 @@ void check_function_call_args(AST *ast, ht_table_t *table, sym_stack_t *stack){
 
         symtable_type_t expected_type = expected_types[idx];
 
-        if (arg_type != expected_type && expected_type != sym_void_type){   // void_type as indicator fun can take any type of argument
-            fprintf(stderr, "Semantic error 4: Invalid argument type\n");
-            exit(4);
+        // Check for null as argument
+        if (arg_type == sym_null_type){
+            if (expected_type != sym_nullable_int_type &&
+                expected_type != sym_nullable_float_type &&
+                expected_type != sym_nullable_string_type){
+                fprintf(stderr, "Semantic error 4: Invalid argument type\n");
+                exit(4);
+            }
+        }
+        // Check for non-null arguments
+        else {
+            if (arg_type != expected_type && expected_type != sym_void_type){
+                if (!check_types_compatibiility(expected_type, arg_type)){
+                    fprintf(stderr, "Semantic error 4: Invalid argument type\n");
+                    exit(4);
+                }
+            }
         }
 
         idx++;
@@ -877,4 +896,44 @@ void check_function_call_args(AST *ast, ht_table_t *table, sym_stack_t *stack){
         exit(4);
     }
     next_node(ast); // skip ')'
+}
+
+// For checking compatibility with nullable types
+bool check_types_compatibiility(symtable_type_t expected_type, symtable_type_t actual_type){
+    if (expected_type == sym_int_type){
+        return false;
+    }
+    else if (expected_type == sym_nullable_int_type){
+        if (actual_type == sym_int_type || actual_type == sym_null_type){
+            return true;
+        }
+        else{
+            return false;
+        }
+    }
+    else if (expected_type == sym_float_type){
+        return false;
+    }
+    else if (expected_type == sym_nullable_float_type){
+        if (actual_type == sym_float_type || actual_type == sym_null_type){
+            return true;
+        }
+        else{
+            return false;
+        }
+    }
+    else if (expected_type == sym_string_type){
+        return false;
+    }
+    else if (expected_type == sym_nullable_string_type){
+        if (actual_type == sym_string_type || actual_type == sym_null_type){
+            return true;
+        }
+        else{
+            return false;
+        }
+    }
+    else{
+        return false;
+    }
 }
