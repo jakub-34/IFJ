@@ -446,7 +446,7 @@ token_t* get_token(){
                 break;
 
             case comment:
-                if (current_char == '\n'){ //alebo eof
+                if (current_char == '\n' || current_char == EOF){
                     state = start;
                 }
                 break;
