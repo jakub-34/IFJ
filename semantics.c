@@ -11,11 +11,11 @@
 
 /*
 TODO:
-    ifj.write can take any type of argument
-
     call ht_insert with structure of arguments
 
     Check: Expressions must account for nullable types
+
+    operators != and == doesnt work for nullable types
 
 KNOWN BUGS:
     Now doesnt support functions with returns in both if/else blocks but not in base fun block
@@ -184,7 +184,7 @@ void get_builtin_fun_declarations(ht_table_t *table){
     ht_insert(table, "ifj$readf64", sym_func_type, sym_const, true, true, 0, NULL, sym_nullable_float_type);
 
     symtable_type_t *ifjwrite_params = malloc(sizeof(symtable_type_t) * 1);
-    ifjwrite_params[0] = sym_string_type;
+    ifjwrite_params[0] = sym_void_type;     // sym_void_type indicating that it can take any type of argument
     ht_insert(table, "ifj$write", sym_func_type, sym_const, true, true, 1, ifjwrite_params, sym_void_type);
 
     symtable_type_t *ifji2f_params = malloc(sizeof(symtable_type_t) * 1);
@@ -329,6 +329,10 @@ void var_definition(AST *ast, ht_table_t *table, sym_stack_t *stack){
         if (strcmp(ast->active->next->token->data, "(") == 0){
             // get return type of function to compare it later to defined return type
             ht_item_t *fun = get_item(stack, table, ast->active->token->data);
+            if (fun == NULL){
+                fprintf(stderr, "Semantic error 3: Undefined function reference\n");
+                exit(3);
+            }
             res_type = fun->return_type;
             fun->used = true;
 
@@ -369,6 +373,11 @@ void var_definition(AST *ast, ht_table_t *table, sym_stack_t *stack){
 
             // check correct result_type
             ht_item_t *fun = get_item(stack, table, ast->active->token->data);
+            if (fun == NULL){
+                fprintf(stderr, "Semantic error 3: Undefined function reference\n");
+                exit(3);
+            }
+            
             type = fun->return_type;
             fun->used = true;
 
@@ -543,10 +552,10 @@ symtable_type_t check_expression(AST *ast, ht_table_t *table, sym_stack_t *stack
                         exit(7);
                     }
                 }
-                else {
-                    fprintf(stderr, "Semantic error 7: Operator '%s' not allowed for this type\n", ast->active->token->data);
-                    exit(7);
-                }
+                // else {
+                //     fprintf(stderr, "Semantic error 7: Operator '%s' not allowed for this type\n", ast->active->token->data);
+                //     exit(7);
+                // }
             }
             else if ((left_type == sym_int_type && right_type == sym_float_type) ||
                     (left_type == sym_float_type && right_type == sym_int_type)){
@@ -811,7 +820,7 @@ void assignment_or_expression(AST *ast, ht_table_t *table, sym_stack_t *stack){
 // ast->active == function_name
 void check_function_call_args(AST *ast, ht_table_t *table, sym_stack_t *stack){
     ht_item_t *fun_entry = get_item(stack, table, ast->active->token->data);
-    fun_entry->used = true; // idk: maybe unnecesarry because already set before call
+    // Function reference is always already checked before calling this
     int expected_params = fun_entry->input_parameters;
     symtable_type_t *expected_types = fun_entry->params;
     
@@ -850,13 +859,13 @@ void check_function_call_args(AST *ast, ht_table_t *table, sym_stack_t *stack){
 
         symtable_type_t expected_type = expected_types[idx];
 
-        if (arg_type != expected_type){
+        if (arg_type != expected_type && expected_type != sym_void_type){   // void_type as indicator fun can take any type of argument
             fprintf(stderr, "Semantic error 4: Invalid argument type\n");
             exit(4);
         }
 
         idx++;
-        next_node(ast); 
+        next_node(ast);
         
         // skip ','
         if (strcmp(ast->active->token->data, ",") == 0){
