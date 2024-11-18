@@ -873,7 +873,7 @@ void generate_builtin_functions(){
     printf("JUMP ifj_write_end\n");
     
     printf("LABEL ifj_write_nil\n");
-    printf("WRITE string@nil\n");
+    printf("WRITE string@null\n");
 
     printf("LABEL ifj_write_end\n");
     printf("POPFRAME\n");
