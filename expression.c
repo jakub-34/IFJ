@@ -37,7 +37,13 @@ void bts_append(bts_Stack *stack, char* operation) {
         free(token);
         exit(1);
     }
+    if(strcmp(token->data, "==") == 0){
+        token->type = equal_token;
+    } else if(strcmp(token->data, "!=") == 0){
+        token->type = not_equal_token;
+    } else {
     token->type = binary_operator_token;
+    }
 
     //creating new node
     bst_node_t *node = bts_create_node(token);
@@ -150,9 +156,9 @@ const char *precedence_table[15][15] = {
     { "<=",  "S",   "S",   "S",   "S",   "S",   "S",   "R",   "R",   "R",   "R",   "S",   "R",   "S", "R"},
     { ">=",  "S",   "S",   "S",   "S",   "S",   "S",   "R",   "R",   "R",   "R",   "S",   "R",   "S", "R"},
     { "(",   "S",   "S",   "S",   "S",   "S",   "S",   "S",   "S",   "S",   "S",   "S",   "=",   "S", " "},
-    { ")",   "R",   "R",   "R",   "R",   "R",   "R",   "R",   "R",   "R",   "R",   " ",   "R",   " ", "R"},
-    { "i",   "R",   "R",   "R",   "R",   "R",   "R",   "R",   "R",   "R",   "R",   "O",   "R",   " ", "R"},
-    { "$",   "S",   "S",   "S",   "S",   "S",   "S",   "S",   "S",   "S",   "S",   "S",   " ",   "S", " "}
+    { ")",   "R",   "R",   "R",   "R",   "R",   "R",   "R",   "R",   "R",   "R",   "E",   "R",   "E", "R"},
+    { "i",   "R",   "R",   "R",   "R",   "R",   "R",   "R",   "R",   "R",   "R",   "O",   "R",   "E", "R"},
+    { "$",   "S",   "S",   "S",   "S",   "S",   "S",   "S",   "S",   "S",   "S",   "S",   "E",   "S", " "}
         
 };
 
@@ -186,16 +192,24 @@ token_t* expression(token_t *token, AST *ast){
         //getting column number in precedence table
         int row;
         int column;
+        bool correct_input = false;
         if(token->type == identifier_token || token->type == int_token || token->type == float_token || token->type == string_token) {
-
             column = 13;
+            correct_input = true;
         }
         else{
             for (int i = 0; i < 15; i++) {
                 if (strcmp(token->data, precedence_table[0][i]) == 0) {
-                column = i;
+                    column = i;
+                    correct_input = true;
                 }
             }
+        }
+
+        //input check
+        if(correct_input == false){
+            fprintf(stderr, "Syntax error \n");
+            exit(2);
         }
         
         //getting row number in precedence table
@@ -251,6 +265,11 @@ token_t* expression(token_t *token, AST *ast){
             output_token->data = token->data;
             output_token->type = token->type;
             break;
+        }
+
+        else if (strcmp(precedence_table[row][column], "E") == 0) {
+            fprintf(stderr, "Syntax error \n");
+            exit(2);
         }
 
         //stack
