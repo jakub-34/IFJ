@@ -149,7 +149,7 @@ void ht_delete_all(ht_table_t *table) {
       ht_item_t *temp = item;
       item = item->next;
       table->items[i] = item;
-      // free(temp->params);
+      free(temp->params);
       free(temp);
       temp = NULL;
       continue;
