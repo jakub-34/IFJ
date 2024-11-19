@@ -14,8 +14,8 @@ TODO:
     call ht_insert with structure of arguments
 
 KNOWN BUGS:
-    Now doesnt support functions with returns in both if/else blocks but not in base fun block
     Cant convert 5.0 to int
+    Doesnt account for values known at compile time
 */
 
 // Global variable for keeping the current function name
@@ -234,16 +234,20 @@ void analyze_code(AST *ast, ht_table_t *table, sym_stack_t *stack){
         // For keeping track of scopes, so we can check missing return keyword
         static int scope_cnt = 0;
         static bool found_return = false;
+        static bool in_if = false;
+        static bool return_in_if = false;
 
         if (strcmp(ast->active->token->data, "var") == 0 || strcmp(ast->active->token->data, "const") == 0){
             var_definition(ast, table, stack);
         }
         else if (strcmp(ast->active->token->data, "if") == 0 || strcmp(ast->active->token->data, "while") == 0){
             scope_cnt++;
+            in_if = true;
             new_scope_if_while(ast, table, stack);
         }
         else if (strcmp(ast->active->token->data, "else") == 0){
             scope_cnt++;
+            in_if = false;
             new_scope(stack, table);
             next_node(ast); // skip else
             next_node(ast); // skip {
@@ -255,7 +259,13 @@ void analyze_code(AST *ast, ht_table_t *table, sym_stack_t *stack){
         }
         else if (strcmp(ast->active->token->data, "}") == 0){
             scope_cnt--;
-            if (scope_cnt == 0 && !found_return){
+            if (in_if == false){
+                return_in_if = false;
+            }
+            if (scope_cnt == 1){
+                in_if = false;
+            }
+            else if (scope_cnt == 0 && !found_return){
                 ht_item_t *fun = get_item(stack, table, current_function_name);
 
                 if (fun->return_type != sym_void_type){
@@ -267,10 +277,18 @@ void analyze_code(AST *ast, ht_table_t *table, sym_stack_t *stack){
             next_node(ast);
         }
         else if (strcmp(ast->active->token->data, "return") == 0){
-            // Set to true only when finding return in the base function block
+            // Set to true only when finding return in the base function block or...
             if (scope_cnt == 1){
                 found_return = true;
             }
+            else if (scope_cnt == 2 && in_if == true){
+                return_in_if = true;
+            }
+            // or when in first scope in else while also has found return in if
+            else if (scope_cnt == 2 && in_if == false && return_in_if == true){
+                found_return = true;
+            }
+
             check_return_expr(ast, table, stack);
         }
         else if (ast->active->token->type == identifier_token){
