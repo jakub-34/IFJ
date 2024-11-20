@@ -49,16 +49,16 @@ ht_item_t *ht_search(ht_table_t *table, char *name) {
 }
 
 // Insert new item into table
-void ht_insert(ht_table_t *table, char *name, symtable_type_t type, symtable_var_type_t var_type, bool used, bool modified, int input_parameters, symtable_type_t *params, symtable_type_t return_type) {
+void ht_insert(ht_table_t *table, ht_item_t *item) {
     // Resize table if needed
     if (table->item_count >= table->size){
         ht_resize(table);
     }
 
   // Existing item
-  ht_item_t *existing_item = ht_search(table, name);
+  ht_item_t *existing_item = ht_search(table, item->name);
   if (existing_item != NULL){
-    fprintf(stderr, "Redefinition of variable%s\n", name);
+    fprintf(stderr, "Redefinition of variable%s\n", item->name);
     exit(5);
   }
 
@@ -68,15 +68,16 @@ void ht_insert(ht_table_t *table, char *name, symtable_type_t type, symtable_var
     fprintf(stderr, "Error: Allocation failed\n");
     exit(99);
   }
-  new_item->name = name;
-  new_item->type = type;
-  new_item->var_type = var_type;
-  new_item->input_parameters = input_parameters;
-  new_item->used = used;
-  new_item->modified = modified;
-  new_item->return_type = return_type;
-  new_item->params = params;
-  int hash = get_hash(name, table->size);
+  new_item->name = item->name;
+  new_item->type = item->type;
+  new_item->var_type = item->var_type;
+  new_item->input_parameters = item->input_parameters;
+  new_item->used = item->used;
+  new_item->modified = item->modified;
+  new_item->return_type = item->return_type;
+  new_item->params = item->params;
+
+  int hash = get_hash(item->name, table->size);
   
   // Add new value into the list
   if (table->items[hash] != NULL){
@@ -84,7 +85,6 @@ void ht_insert(ht_table_t *table, char *name, symtable_type_t type, symtable_var
     table->items[hash] = new_item;
     return;
   }
-
 
   // Add new value at the beginning
   new_item->next = NULL;
@@ -212,7 +212,7 @@ void ht_resize(ht_table_t *table){
     for(int i = 0; i < table->size; i++){
         ht_item_t *item = table->items[i];
         while(item != NULL){
-            ht_insert(&new_table, item->name, item->type, item->var_type, item->used, item->modified, item->input_parameters, item->params, item->return_type);
+            ht_insert(&new_table, item);
             item = item->next;
         }
     }

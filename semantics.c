@@ -64,8 +64,18 @@ void semantic_analysis(AST *ast){
         exit(4);
     }
 
+    // Insert pseudovariable _ into table
+    ht_item_t item;
+    item.name = "_";
+    item.type = sym_void_type;
+    item.var_type = sym_var;
+    item.used = true;
+    item.modified = true;
+    item.input_parameters = -1;
+    item.params = NULL;
+    item.return_type = sym_void_type;
 
-    ht_insert(&table, "_", sym_void_type, sym_var, true, true, -1, NULL, sym_void_type);
+    ht_insert(&table, &item);
     get_builtin_fun_declarations(&table);
 
     ast->active = ast->root;
@@ -92,8 +102,11 @@ void get_fun_declarations(AST *ast, ht_table_t *table){
 void save_fun_dec(AST *ast, ht_table_t *table){
     next_node(ast); // skip pub
     next_node(ast); // skip fn
+
+    ht_item_t item;
     
-    char *fun_name = ast->active->token->data;
+    item.name = ast->active->token->data;
+    // char *fun_name = ast->active->token->data;
     int args_cnt = 0;
     symtable_type_t *arg_types_ptr = (symtable_type_t *)malloc((sizeof(symtable_type_t))*20);
 
@@ -167,8 +180,17 @@ void save_fun_dec(AST *ast, ht_table_t *table){
         return_type = sym_void_type;
     }
 
+    // Sets the values
+    item.type = sym_func_type;
+    item.var_type = sym_const;
+    item.used = false;
+    item.modified = true;
+    item.input_parameters = args_cnt;
+    item.params = arg_types_ptr;
+    item.return_type = return_type;
+
     // Inserts definition of function to symtable
-    ht_insert(table, fun_name, sym_func_type, sym_const, false, false, args_cnt, arg_types_ptr, return_type);
+    ht_insert(table, &item);
 
     next_node(ast); // skip return_type
     next_node(ast); // skip {
@@ -176,56 +198,98 @@ void save_fun_dec(AST *ast, ht_table_t *table){
 
 // Generates built-in functions declarations
 void get_builtin_fun_declarations(ht_table_t *table){
-    ht_insert(table, "ifj$readstr", sym_func_type, sym_const, true, true, 0, NULL, sym_nullable_string_type);
+    ht_item_t item;
 
-    ht_insert(table, "ifj$readi32", sym_func_type, sym_const, true, true, 0, NULL, sym_nullable_int_type);
+    // Initialize item with default values same for all funs
+    item.type = sym_func_type;
+    item.var_type = sym_const;
+    item.used = true; // Built-in functions dont have to be used
+    item.modified = true;
 
-    ht_insert(table, "ifj$readf64", sym_func_type, sym_const, true, true, 0, NULL, sym_nullable_float_type);
+    // Set individual values that change
+    item.name = "ifj$readstr";
+    item.input_parameters = 0;
+    item.params = NULL;
+    item.return_type = sym_nullable_string_type;
+    ht_insert(table, &item);
 
-    symtable_type_t *ifjwrite_params = malloc(sizeof(symtable_type_t) * 1);
-    ifjwrite_params[0] = sym_void_type;     // sym_void_type indicating that it can take any type of argument
-    ht_insert(table, "ifj$write", sym_func_type, sym_const, true, true, 1, ifjwrite_params, sym_void_type);
+    item.name = "ifj$readi32";
+    item.return_type = sym_nullable_int_type;
+    ht_insert(table, &item);
 
-    symtable_type_t *ifji2f_params = malloc(sizeof(symtable_type_t) * 1);
-    ifji2f_params[0] = sym_int_type;
-    ht_insert(table, "ifj$i2f", sym_func_type, sym_const, true, true, 1, ifji2f_params, sym_float_type);
+    item.name = "ifj$readf64";
+    item.return_type = sym_nullable_float_type;
+    ht_insert(table, &item);
 
-    symtable_type_t *ifjf2i_params = malloc(sizeof(symtable_type_t) * 1);
-    ifjf2i_params[0] = sym_float_type;
-    ht_insert(table, "ifj$f2i", sym_func_type, sym_const, true, true, 1, ifjf2i_params, sym_int_type);
+    item.name = "ifj$write";
+    item.input_parameters = 1;
+    item.params = malloc(sizeof(symtable_type_t) * 1);
+    item.params[0] = sym_void_type;     // sym_void_type indicating that it can take any type of argument
+    item.return_type = sym_void_type;
+    ht_insert(table, &item);
 
-    symtable_type_t *ifjstring_params = malloc(sizeof(symtable_type_t) * 1);
-    ifjstring_params[0] = sym_string_type;
-    ht_insert(table, "ifj$string", sym_func_type, sym_const, true, true, 1, ifjstring_params, sym_string_type);
+    item.name = "ifj$i2f";
+    item.params = malloc(sizeof(symtable_type_t) * 1);
+    item.params[0] = sym_int_type;
+    item.return_type = sym_float_type;
+    ht_insert(table, &item);
 
-    symtable_type_t *ifjlength_params = malloc(sizeof(symtable_type_t) * 1);
-    ifjlength_params[0] = sym_string_type;
-    ht_insert(table, "ifj$length", sym_func_type, sym_const, true, true, 1, ifjlength_params, sym_int_type);
+    item.name = "ifj$f2i";
+    item.params = malloc(sizeof(symtable_type_t) * 1);
+    item.params[0] = sym_float_type;
+    item.return_type = sym_int_type;
+    ht_insert(table, &item);
 
-    symtable_type_t *ifjconcat_params = malloc(sizeof(symtable_type_t) * 2);
-    ifjconcat_params[0] = sym_string_type;
-    ifjconcat_params[1] = sym_string_type;
-    ht_insert(table, "ifj$concat", sym_func_type, sym_const, true, true, 2, ifjconcat_params, sym_string_type);
+    item.name = "ifj$string";
+    item.params = malloc(sizeof(symtable_type_t) * 1);
+    item.params[0] = sym_string_type;
+    item.return_type = sym_string_type;
+    ht_insert(table, &item);
 
-    symtable_type_t *ifjsubstring_params = malloc(sizeof(symtable_type_t) * 3);
-    ifjsubstring_params[0] = sym_string_type;
-    ifjsubstring_params[1] = sym_int_type;
-    ifjsubstring_params[2] = sym_int_type;
-    ht_insert(table, "ifj$substring", sym_func_type, sym_const, true, true, 3, ifjsubstring_params, sym_nullable_string_type);
+    item.name = "ifj$length";
+    item.params = malloc(sizeof(symtable_type_t) * 1);
+    item.params[0] = sym_string_type;
+    item.return_type = sym_int_type;
+    ht_insert(table, &item);
 
-    symtable_type_t *ifjcmp_params = malloc(sizeof(symtable_type_t) * 2);
-    ifjcmp_params[0] = sym_string_type;
-    ifjcmp_params[1] = sym_string_type;
-    ht_insert(table, "ifj$strcmp", sym_func_type, sym_const, true, true, 2, ifjcmp_params, sym_int_type);
+    item.name = "ifj$concat";
+    item.input_parameters = 2;
+    item.params = malloc(sizeof(symtable_type_t) * 2);
+    item.params[0] = sym_string_type;
+    item.params[1] = sym_string_type;
+    item.return_type = sym_string_type;
+    ht_insert(table, &item);
 
-    symtable_type_t *ifjord_params = malloc(sizeof(symtable_type_t) * 2);
-    ifjord_params[0] = sym_string_type;
-    ifjord_params[1] = sym_int_type;
-    ht_insert(table, "ifj$ord", sym_func_type, sym_const, true, true, 2, ifjord_params, sym_int_type);
+    item.name = "ifj$substring";
+    item.input_parameters = 3;
+    item.params = malloc(sizeof(symtable_type_t) * 3);
+    item.params[0] = sym_string_type;
+    item.params[1] = sym_int_type;
+    item.params[2] = sym_int_type;
+    item.return_type = sym_nullable_string_type;
+    ht_insert(table, &item);
 
-    symtable_type_t *ifjchr_params = malloc(sizeof(symtable_type_t) * 1);
-    ifjchr_params[0] = sym_int_type;    
-    ht_insert(table, "ifj$chr", sym_func_type, sym_const, true, true, 1, ifjchr_params, sym_string_type);
+    item.name = "ifj$strcmp";
+    item.input_parameters = 2;
+    item.params = malloc(sizeof(symtable_type_t) * 2);
+    item.params[0] = sym_string_type;
+    item.params[1] = sym_string_type;
+    item.return_type = sym_int_type;
+    ht_insert(table, &item);
+
+    item.name = "ifj$ord";
+    item.params = malloc(sizeof(symtable_type_t) * 2);
+    item.params[0] = sym_string_type;
+    item.params[1] = sym_int_type;
+    item.return_type = sym_int_type;
+    ht_insert(table, &item);
+
+    item.name = "ifj$chr";
+    item.input_parameters = 1;
+    item.params = malloc(sizeof(symtable_type_t) * 1);
+    item.params[0] = sym_int_type;
+    item.return_type = sym_string_type;
+    ht_insert(table, &item);
 }
 
 /***************************************************** MAIN FUNCTION *************************************************************/
@@ -410,14 +474,25 @@ void var_definition(AST *ast, ht_table_t *table, sym_stack_t *stack){
         }
     }
 
+    // Creates item to carry parameters to insert function
+    ht_item_t item;
+    item.name = identifier;
+    item.type = type;
+    item.var_type = var_type;
+    item.used = false;
+    item.input_parameters = -1;
+    item.params = NULL;
+    item.return_type = sym_void_type;
+
     // inserts the variable into the sym_table
     if (var_type == sym_const){
-        ht_insert(table, identifier, type, var_type, false, true, -1, NULL, sym_void_type);
+        item.modified = true;
+        ht_insert(table, &item);
     }
     else{
-        ht_insert(table, identifier, type, var_type, false, false, -1, NULL, sym_void_type);
+        item.modified = false;
+        ht_insert(table, &item);
     }
-        
 }
 
 
@@ -748,9 +823,17 @@ void new_scope_if_while(AST *ast, ht_table_t *table, sym_stack_t *stack){
         next_node(ast); // skip )
         next_node(ast); // skip |
 
-        char *id_without_null = ast->active->token->data;
+        ht_item_t new_item;
+        new_item.name = ast->active->token->data;
+        new_item.type = type;
+        new_item.var_type = sym_var;
+        new_item.used = false;
+        new_item.modified = true;
+        new_item.input_parameters = -1;
+        new_item.params = NULL;
+        new_item.return_type = sym_void_type;
 
-        ht_insert(table, id_without_null, type, sym_var, false, true, -1, NULL, sym_void_type);
+        ht_insert(table, &new_item);
         
         next_node(ast); // skip id_without_null
         next_node(ast); // skip |
@@ -798,7 +881,17 @@ void new_scope_function(AST *ast, ht_table_t *table, sym_stack_t *stack){
 
         next_node(ast); // skip type
 
-        ht_insert(table, arg_name, arg_type, sym_const, false, true, -1, NULL, sym_void_type);
+        ht_item_t item;
+        item.name = arg_name;
+        item.type = arg_type;
+        item.var_type = sym_const;
+        item.used = false;
+        item.modified = true;
+        item.input_parameters = -1;
+        item.params = NULL;
+        item.return_type = sym_void_type;
+
+        ht_insert(table, &item);
 
         // Skip ',', because ',' can be also after last argument but doesnt have to
         if (strcmp(ast->active->token->data, ",") == 0){

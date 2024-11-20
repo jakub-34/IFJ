@@ -54,7 +54,7 @@ ht_item_t *ht_search(ht_table_t *table, char *name);
 
 // Insert new item into table
 // Also checking redefinition sematic error
-void ht_insert(ht_table_t *table, char *name, symtable_type_t type, symtable_var_type_t var_type, bool used, bool modified, int input_parameters, symtable_type_t *params, symtable_type_t return_type);
+void ht_insert(ht_table_t *table, ht_item_t *item);
 
 // Copy table into new one
 void ht_copy(ht_table_t *old_table, ht_table_t *new_table);
