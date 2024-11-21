@@ -42,7 +42,7 @@ pub fn main() void{
 
 ///////////////////////////
 
-// Deadlock (jen i s tim komentarem na konci)
+// Deadlock (jen i s tim komentarem na konci)       -- FIXED
 const ifj = @import("ifj24.zig");
 
     pub fn main() void{
@@ -56,7 +56,7 @@ const ifj = @import("ifj24.zig");
 
 // var x = foo(5)           -- toto spravne hodi syntax error (chybejici ;)
 // var x = null             -- toto taky spravne hodi syntax error
-// To pod tímto nehodí syntax error a deadlockne se
+// To pod tímto nehodí syntax error a deadlockne se                    -- FIXED
 const ifj = @import("ifj24.zig");
 
 pub fn main() void{
@@ -218,6 +218,49 @@ pub fn main() void {
     }
     const f = 12;
     foo(f);
+    f = x + f;
+    ifj.write("KONEC");
+    ifj.write("\n");
+}
+
+/////////////////////////////////////////
+const ifj = @import("ifj24.zig");
+
+pub fn foo(m: i32) i32{
+    var l = m;
+    while (l > 0){
+        ifj.write(l);
+        ifj.write("\n");
+        l = l - 1;
+        if (l < 0){
+            return l;
+        }
+        else{
+            return l;
+        }
+    }
+    const r = 8;
+
+    return l + m + r;
+}
+
+pub fn bar()void {
+    return;
+}
+
+// Hlavni funkce
+pub fn main() void {
+    var x = 5;
+    const p: f64 = 8.1;
+    while (x != p){
+        const y = 2;
+        const z = foo(x);
+        const c = 2 + x + y + z + 5;
+        x = x - 1 - c;
+    }
+    // var ha: void = bar();
+    var f = 7;
+    f = foo(f);
     f = x + f;
     ifj.write("KONEC");
     ifj.write("\n");
