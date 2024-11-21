@@ -38,7 +38,7 @@ void bts_append(bts_Stack *stack, char* operation) {
         exit(1);
     }
     if(strcmp(token->data, "==") == 0){
-        token->type = equal_token;
+        token->type = double_equal_token;
     } else if(strcmp(token->data, "!=") == 0){
         token->type = not_equal_token;
     } else {
