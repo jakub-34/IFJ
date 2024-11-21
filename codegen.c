@@ -756,67 +756,16 @@ void generate_builtin_functions(){
     // Define local variables
     printf("DEFVAR LF@__retval\n");         // The read string
     printf("DEFVAR LF@__type\n");           // Type of the read value
-    printf("DEFVAR LF@__len\n");            // Length of the string
-    printf("DEFVAR LF@__char\n");           // Character at a position
-    printf("DEFVAR LF@__new_str\n");        // String without newline
-    printf("DEFVAR LF@__i\n");              // Loop counter
-    printf("DEFVAR LF@__cmp_res\n");        // Comparison result
     
     // Read input as string
     printf("READ LF@__retval string\n");
-    printf("TYPE LF@__type LF@__retval\n");
-    
+
     // Check if input is of type string
-    printf("JUMPIFEQ ifj_readstr_process LF@__type string@string\n");
+    printf("TYPE LF@__type LF@__retval\n");
+    printf("JUMPIFEQ ifj_readstr_end LF@__type string@string\n");
     // If not, set return value to nil
     printf("MOVE LF@__retval nil@nil\n");
-    printf("JUMP ifj_readstr_end\n");
-    
-    printf("LABEL ifj_readstr_process\n");
-    // Get the length of the string
-    printf("STRLEN LF@__len LF@__retval\n");
-    
-    // Check if length is zero (empty input)
-    printf("JUMPIFEQ ifj_readstr_empty LF@__len int@0\n");
-    
-    // Get the last character index
-    printf("SUB LF@__i LF@__len int@1\n");      // LF@__i = len - 1
-    printf("GETCHAR LF@__char LF@__retval LF@__i\n");
-    
-    // Compare the last character to '\n'
-    printf("EQ LF@__cmp_res LF@__char string@\010\n");
-    printf("JUMPIFEQ ifj_readstr_remove_newline LF@__cmp_res bool@true\n");
-    // If not equal, no need to remove newline
-    printf("JUMP ifj_readstr_end\n");
-    
-    printf("LABEL ifj_readstr_remove_newline\n");
-    // Initialize new string
-    // printf("MOVE LF@__new_str string@nil\n");       // Empty string
-    printf("MOVE LF@__len LF@__i\n");     // new length is len - 1
-    printf("MOVE LF@__i int@0\n");
-    
-    printf("LABEL ifj_readstr_loop\n");
-    // Loop condition: if __i >= __len, exit loop
-    printf("JUMPIFEQ ifj_readstr_loop_end LF@__i LF@__len\n");
 
-    // Get character at position __i
-    printf("GETCHAR LF@__char LF@__retval LF@__i\n");
-    // Append character to new string
-    printf("CONCAT LF@__new_str LF@__new_str LF@__char\n");
-    // Increment __i
-    printf("ADD LF@__i LF@__i int@1\n");
-    // Loop back
-    printf("JUMP ifj_readstr_loop\n");
-    
-    printf("LABEL ifj_readstr_loop_end\n");
-    // Push the new string onto the data stack
-    printf("PUSHS LF@__new_str\n");
-    printf("JUMP ifj_readstr_end\n");
-    
-    printf("LABEL ifj_readstr_empty\n");
-    // Return nil for empty input
-    printf("MOVE LF@__retval nil@nil\n");
-    
     printf("LABEL ifj_readstr_end\n");
     printf("PUSHS LF@__retval\n");
     printf("POPFRAME\n");
