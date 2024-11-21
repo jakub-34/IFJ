@@ -68,7 +68,7 @@ void generate_initial_values(){
 
 /********************** MAIN ***************************/
 int generate_code(AST *ast){
-    // printAST(ast);
+    // print_ast(ast);
 
     ast->active = ast->root;
     
