@@ -786,7 +786,7 @@ void code(token_t *token, AST *ast){
 
 int main(){
     // AST Initialization
-    AST *ast = createAST();
+    AST *ast = create_ast();
     
     token_t *token = get_token();
 
@@ -841,7 +841,7 @@ int main(){
     ast->active = NULL;
     generate_code(ast);
 
-    destroyAST(ast);
+    destroy_ast(ast);
 
     // printf("Syntax OK\n");
 

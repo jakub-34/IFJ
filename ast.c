@@ -7,7 +7,7 @@
 
 // Creates and initializes AST
 // Returns pointer to the newly created AST
-AST *createAST() {
+AST *create_ast() {
     AST *ast = malloc(sizeof(AST));
     if (ast == NULL) {
         fprintf(stderr, "Error allocating memory for AST\n");
@@ -61,18 +61,19 @@ ASTNode *next_node(AST *ast) {
     return ast->active;
 }
 
-// Prints whole tree
-void printAST(AST *ast){
+// Prints whole tree data with type
+void print_ast(AST *ast){
     ast->active = ast->root;
 
     while(ast->active != NULL && ast->active->token->type != eof_token){
-        printf("%s\n", ast->active->token->data);
+        printf("%s\t\t", ast->active->token->data);
+        printf("type: %d\n", ast->active->token->type);
         next_node(ast);
     }
 }
 
 // Frees the whole tree
-void destroyAST(AST *ast){
+void destroy_ast(AST *ast){
     ast->active = ast->root;
     ASTNode *tmp = NULL;
 

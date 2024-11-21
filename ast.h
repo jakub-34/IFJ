@@ -18,10 +18,10 @@ typedef struct {
 } AST;
 
 
-AST *createAST();
+AST *create_ast();
 void create_node(token_t *token, AST *ast);
 ASTNode *next_node(AST *ast);
-void printAST(AST *ast);
-void destroyAST(AST *ast);
+void print_ast(AST *ast);
+void destroy_ast(AST *ast);
 
 #endif //AST_H
