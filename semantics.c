@@ -10,12 +10,10 @@
 #include "semantics.h"
 
 /*
-TODO:
-    call ht_insert with structure of arguments
-
 KNOWN BUGS:
     Cant convert 5.0 to int
     Doesnt account for values known at compile time
+        (our semantics approves type conversion from int to float for variables in relational operations)
 */
 
 // Global variable for keeping the current function name
@@ -292,7 +290,7 @@ void get_builtin_fun_declarations(ht_table_t *table){
     ht_insert(table, &item);
 }
 
-/***************************************************** MAIN FUNCTION *************************************************************/
+/***************************************************** MAIN CYCLE *************************************************************/
 void analyze_code(AST *ast, ht_table_t *table, sym_stack_t *stack){
     while(ast->active != NULL && ast->active->token->type != eof_token){
         // For keeping track of scopes, so we can check missing return keyword
@@ -568,8 +566,7 @@ symtable_type_t check_expression(AST *ast, ht_table_t *table, sym_stack_t *stack
                 }
                 result_var_type = sym_var;
             }
-            // If one operand is a variable, one is literal constant
-            // Type conversion only allowed for literal constant
+            // One operand is a variable the other is literal constant
             else if ((left_var_type != sym_literal && right_var_type == sym_literal) || (left_var_type == sym_literal && right_var_type != sym_literal)){
                 symtable_type_t var_type = (left_var_type != sym_literal) ? left_type : right_type;
                 symtable_type_t const_type = (left_var_type == sym_literal) ? left_type : right_type;
@@ -605,7 +602,7 @@ symtable_type_t check_expression(AST *ast, ht_table_t *table, sym_stack_t *stack
                 result_var_type = sym_literal;
             }
             else{
-                // Should not reach here
+                // Should not reach here, just in case...
                 fprintf(stderr, "Semantic error 7: Unknown operand kinds\n");
                 exit(7);
             }
@@ -630,16 +627,24 @@ symtable_type_t check_expression(AST *ast, ht_table_t *table, sym_stack_t *stack
 
             // Both operands are variables
             if(left_var_type != sym_literal && right_var_type != sym_literal){
+                // Same types
                 if (left_type == right_type){
+                    // Both are nullable/null type
                     if (left_type == sym_nullable_int_type || left_type == sym_nullable_float_type ||
                         left_type == sym_nullable_string_type || left_type == sym_null_type){
                         fprintf(stderr, "Semantic error 7: Cannot perform relational operations with nullable types\n");
                         exit(7);
                     }
+                    // Both are []u8
                     else if (left_type == sym_string_type){
                         fprintf(stderr, "Semantic error 7: Cannot perform relational operations with []u8 types\n");
                         exit(7);
                     }
+                }
+                // One is int, other float
+                else if ((left_type == sym_int_type && right_type == sym_float_type) ||
+                        (left_type == sym_float_type && right_type == sym_int_type)){
+                    // Nothing needs to be done
                 }
                 else{
                     fprintf(stderr, "Semantic error 7: Incompatible types between variables\n");
@@ -647,6 +652,7 @@ symtable_type_t check_expression(AST *ast, ht_table_t *table, sym_stack_t *stack
                 }
                 result_var_type = sym_var;
             }
+            // One is variable, one is literal constant
             else if ((left_var_type != sym_literal && right_var_type == sym_literal) || (left_var_type == sym_literal && right_var_type != sym_literal)){
                 symtable_type_t var_type = (left_var_type != sym_literal) ? left_type : right_type;
                 symtable_type_t const_type = (left_var_type == sym_literal) ? left_type : right_type;
@@ -658,7 +664,9 @@ symtable_type_t check_expression(AST *ast, ht_table_t *table, sym_stack_t *stack
                 else if (var_type == const_type){
                     // Nothing needs to be done
                 }
-                else if (var_type == sym_float_type && const_type == sym_int_type){
+                // Possible int -> float conversion
+                else if ((var_type == sym_float_type && const_type == sym_int_type) ||
+                        (var_type == sym_int_type && const_type == sym_float_type)){
                     // Nothing needs to be done
                 }
                 else {
@@ -669,10 +677,12 @@ symtable_type_t check_expression(AST *ast, ht_table_t *table, sym_stack_t *stack
             }
             // Both are literals
             else{
-                if (left_type == sym_int_type && right_type == sym_int_type){
+                if ((left_type == sym_int_type && right_type == sym_int_type) ||
+                    (left_type == sym_float_type && right_type == sym_float_type)){
                     // Nothing needs to be done
                 }
-                else if ((left_type == sym_int_type && right_type == sym_float_type) || (left_type == sym_float_type && right_type == sym_int_type) || (left_type == sym_float_type && right_type == sym_float_type)){
+                else if ((left_type == sym_int_type && right_type == sym_float_type) ||
+                        (left_type == sym_float_type && right_type == sym_int_type)){
                     // Nothing needs to be done
                 }
                 else {
@@ -687,6 +697,7 @@ symtable_type_t check_expression(AST *ast, ht_table_t *table, sym_stack_t *stack
             type_stack[++stack_top].type = result_type;
             type_stack[stack_top].var_type = result_var_type;
         }
+        // Relational operations using == or !=
         else if (strcmp(ast->active->token->data, "==") == 0 || strcmp(ast->active->token->data, "!=") == 0){
             ht_item_t right = type_stack[stack_top--];
             ht_item_t left = type_stack[stack_top--];
@@ -708,6 +719,12 @@ symtable_type_t check_expression(AST *ast, ht_table_t *table, sym_stack_t *stack
                         exit(7);
                     }
                 }
+                // One is int, other float
+                else if ((left_type == sym_int_type && right_type == sym_float_type) ||
+                        (left_type == sym_float_type && right_type == sym_int_type)){
+                    // Nothing needs to be done
+                }
+                // Same types but one of them is nullable
                 else if ((left_type == sym_int_type && right_type == sym_nullable_int_type) || (right_type == sym_int_type && left_type == sym_nullable_int_type) ||
                     (left_type == sym_float_type && right_type == sym_nullable_float_type) || (right_type == sym_float_type && left_type == sym_nullable_float_type)){
                     // Correct and nothing needs to be done
@@ -718,6 +735,7 @@ symtable_type_t check_expression(AST *ast, ht_table_t *table, sym_stack_t *stack
                 }
                 result_var_type = sym_var;
             }
+            // One is variable, one is literal
             else if ((left_var_type != sym_literal && right_var_type == sym_literal) || (left_var_type == sym_literal && right_var_type != sym_literal)){
                 symtable_type_t var_type = (left_var_type != sym_literal) ? left_type : right_type;
                 symtable_type_t const_type = (left_var_type == sym_literal) ? left_type : right_type;
@@ -729,7 +747,9 @@ symtable_type_t check_expression(AST *ast, ht_table_t *table, sym_stack_t *stack
                 else if (var_type == const_type){
                     // Nothing needs to be done
                 }
-                else if (var_type == sym_float_type && const_type == sym_int_type){
+                // Possible int -> float conversion
+                else if ((var_type == sym_float_type && const_type == sym_int_type) ||
+                        (var_type == sym_int_type && const_type == sym_float_type)){
                     // Nothing needs to be done
                 }
                 else if (var_type == sym_nullable_int_type && const_type == sym_int_type){
@@ -750,10 +770,12 @@ symtable_type_t check_expression(AST *ast, ht_table_t *table, sym_stack_t *stack
             }
             // Both are literals
             else{
-                if (left_type == sym_int_type && right_type == sym_int_type){
+                if ((left_type == sym_int_type && right_type == sym_int_type) ||
+                    (left_type == sym_float_type && right_type == sym_float_type)){
                     // Nothing needs to be done
                 }
-                else if ((left_type == sym_int_type && right_type == sym_float_type) || (left_type == sym_float_type && right_type == sym_int_type) || (left_type == sym_float_type && right_type == sym_float_type)){
+                else if ((left_type == sym_int_type && right_type == sym_float_type) ||
+                        (left_type == sym_float_type && right_type == sym_int_type)){
                     // Nothing needs to be done
                 }
                 else if (left_type == sym_null_type && right_type == sym_null_type){
