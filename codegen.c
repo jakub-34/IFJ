@@ -311,8 +311,17 @@ void generate_if_statement(ASTNode *token_node, AST *ast){
         token_node = next_node(ast);    // skip 'expression'
         token_node = next_node(ast);    // skip ')'
         token_node = next_node(ast);    // skip '|'
-        
-        printf("DEFVAR LF@%s\n", token_node->token->data);
+
+        printf("GT GF@__decl_bool GF@__decl_cnt int@%d\n", global_decl_cnt);
+        printf("JUMPIFEQ ex_declskip%d GF@__decl_bool bool@true \n", current_if_label);
+
+            printf("DEFVAR LF@%s\n", token_node->token->data);
+
+            printf("ADD GF@__decl_cnt GF@__decl_cnt int@1\n");
+            global_decl_cnt++;
+            
+        printf("LABEL ex_declskip%d\n", current_if_label);
+            
         printf("MOVE LF@%s GF@__extcheck_var\n", token_node->token->data);
 
         token_node = next_node(ast);    // skip 'y'
