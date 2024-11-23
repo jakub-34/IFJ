@@ -256,7 +256,7 @@ void generate_expression(ASTNode *token_node, AST *ast){
             // Checks for division by 0
             printf("JUMPIFNEQ division_continuation%d GF@__typecheck_var int@0\n", div_counter);
             printf("CLEARS\n"); // clears after itself
-            printf("EXIT int@10\n");
+            printf("EXIT int@57\n");
 
             // Continues here if not dividing by 0
             printf("LABEL division_continuation%d\n", div_counter);

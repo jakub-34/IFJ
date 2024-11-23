@@ -560,6 +560,11 @@ symtable_type_t check_expression(AST *ast, ht_table_t *table, sym_stack_t *stack
                     }
                     result_type = left_type;
                 }
+                else if ((left_type == sym_int_type && right_type == sym_float_type) ||
+                        (left_type == sym_float_type && right_type == sym_int_type)){
+                    result_type = sym_float_type;
+                    // Nothing needs to be done
+                }
                 else{
                     fprintf(stderr, "Semantic error 7: Incompatible types between variables\n");
                     exit(7);
