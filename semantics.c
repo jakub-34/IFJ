@@ -1194,10 +1194,16 @@ bool check_types_compatibility(symtable_type_t expected_type, symtable_type_t ac
         }
     }
     else if (expected_type == sym_float_type){
-        return false;
+        if (actual_type == sym_int_type){
+            return true;
+        }
+        else {
+            return false;
+        }
     }
     else if (expected_type == sym_nullable_float_type){
-        if (actual_type == sym_float_type || actual_type == sym_null_type){
+        if (actual_type == sym_float_type || actual_type == sym_null_type ||
+            actual_type == sym_int_type || actual_type == sym_nullable_int_type){
             return true;
         }
         else{
