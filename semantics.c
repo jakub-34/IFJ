@@ -13,7 +13,6 @@
 KNOWN BUGS:
     Cant convert 5.0 to int
     Doesnt account for values known at compile time
-        (our semantics approves type conversion from int to float for variables in relational operations)
 */
 
 // Global variable for keeping the current function name
@@ -372,9 +371,16 @@ void var_definition(AST *ast, ht_table_t *table, sym_stack_t *stack){
         var_type = sym_const;
     }
     next_node(ast); // skip "var/const"
+    
     char *identifier = ast->active->token->data;
-    symtable_type_t type;
+    // Check for variable redefinition
+    ht_item_t *existing_item = get_item(stack, table, identifier);
+    if (existing_item != NULL){
+        fprintf(stderr, "Redefinition of variable %s\n", identifier);
+        exit(5);
+    }
 
+    symtable_type_t type;
     next_node(ast); // skip id
 
     // type is defined
@@ -898,6 +904,13 @@ void new_scope_if_while(AST *ast, ht_table_t *table, sym_stack_t *stack){
         next_node(ast); // skip )
         next_node(ast); // skip |
 
+        ht_item_t *existing_item = get_item(stack, table, ast->active->token->data);
+        // Check for variable redefinition
+        if (existing_item != NULL){
+            fprintf(stderr, "Redefinition of variable %s\n", ast->active->token->data);
+            exit(5);
+        }
+
         ht_item_t new_item;
         new_item.name = ast->active->token->data;
         new_item.type = type;
@@ -929,6 +942,14 @@ void new_scope_function(AST *ast, ht_table_t *table, sym_stack_t *stack){
 
     while(strcmp(ast->active->token->data, ")") != 0){
         char *arg_name = ast->active->token->data;
+
+        // Check for variable redefinition
+        ht_item_t *existing_item = get_item(stack, table, arg_name);
+        if (existing_item != NULL){
+            fprintf(stderr, "Redefinition of variable %s\n", arg_name);
+            exit(5);
+        }
+
         next_node(ast); // skip arg_name
         next_node(ast); // skip :
 
