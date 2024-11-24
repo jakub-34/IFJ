@@ -58,7 +58,7 @@ void ht_insert(ht_table_t *table, ht_item_t *item) {
   // Existing item
   ht_item_t *existing_item = ht_search(table, item->name);
   if (existing_item != NULL){
-    fprintf(stderr, "Redefinition of variable%s\n", item->name);
+    fprintf(stderr, "Redefinition of function %s\n", item->name);
     exit(5);
   }
 
