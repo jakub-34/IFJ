@@ -534,6 +534,8 @@ symtable_type_t check_expression(AST *ast, ht_table_t *table, sym_stack_t *stack
 
             type_stack[++stack_top].type = var_entry->type;
             type_stack[stack_top].var_type = var_entry->var_type;
+            // fprintf(stderr, "Type: %d\n", type_stack[stack_top].type);
+            // fprintf(stderr, "Var type: %d\n", type_stack[stack_top].var_type);
 
         }
         // Binary arithmetic operations
@@ -565,26 +567,28 @@ symtable_type_t check_expression(AST *ast, ht_table_t *table, sym_stack_t *stack
                         exit(7);
                     }
                     result_type = left_type;
+                    result_var_type = left_var_type;
                 }
                 else if (left_type == sym_int_type && right_type == sym_float_type){
                     if (left_var_type == sym_var){
-                        fprintf(stderr, "Semantic error 7: Cannot apply conversion to VAR variable\n");
+                        fprintf(stderr, "Semantic error 7: Cannot apply conversion to VAR variable a\n");
                         exit(7);
                     }
                     result_type = sym_float_type;
+                    result_var_type = sym_const;
                 }
                 else if(left_type == sym_float_type && right_type == sym_int_type) {
                     if (right_var_type == sym_var){
-                        fprintf(stderr, "Semantic error 7: Cannot apply conversion to VAR variable\n");
+                        fprintf(stderr, "Semantic error 7: Cannot apply conversion to VAR variable b\n");
                         exit(7);
                     }
                     result_type = sym_float_type;
+                    result_var_type = sym_const;
                 }
                 else{
                     fprintf(stderr, "Semantic error 7: Incompatible types between variables\n");
                     exit(7);
                 }
-                result_var_type = sym_var;
             }
             // One operand is a variable the other is literal constant
             else if ((left_var_type != sym_literal && right_var_type == sym_literal) || (left_var_type == sym_literal && right_var_type != sym_literal)){
@@ -605,7 +609,7 @@ symtable_type_t check_expression(AST *ast, ht_table_t *table, sym_stack_t *stack
                 }
                 else if (var_type == sym_int_type && literal_type == sym_float_type){
                     if (type_of_variable == sym_var){    
-                        fprintf(stderr, "Semantic error 7: Cannot apply conversion to VAR variable\n");
+                        fprintf(stderr, "Semantic error 7: Cannot apply conversion to VAR variable c\n");
                         exit(7);
                     }
                     result_type = sym_float_type;
@@ -614,7 +618,7 @@ symtable_type_t check_expression(AST *ast, ht_table_t *table, sym_stack_t *stack
                     fprintf(stderr, "Semantic error 7: Incompatible types between variable and literal\n");
                     exit(7);
                 }
-                result_var_type = sym_var;
+                result_var_type = sym_const;
             }
             // Both operands are literal constants
             else if (left_var_type == sym_literal && right_var_type == sym_literal){
@@ -673,13 +677,13 @@ symtable_type_t check_expression(AST *ast, ht_table_t *table, sym_stack_t *stack
                 // One is int, other float
                 else if (left_type == sym_int_type && right_type == sym_float_type){
                     if (left_var_type == sym_var){
-                        fprintf(stderr, "Semantic error 7: Cannot apply conversion to VAR variable\n");
+                        fprintf(stderr, "Semantic error 7: Cannot apply conversion to VAR variable d\n");
                         exit(7);
                     }
                 }
                 else if(left_type == sym_float_type && right_type == sym_int_type) {
                     if (right_var_type == sym_var){
-                        fprintf(stderr, "Semantic error 7: Cannot apply conversion to VAR variable\n");
+                        fprintf(stderr, "Semantic error 7: Cannot apply conversion to VAR variable e\n");
                         exit(7);
                     }
                 }
@@ -687,7 +691,7 @@ symtable_type_t check_expression(AST *ast, ht_table_t *table, sym_stack_t *stack
                     fprintf(stderr, "Semantic error 7: Incompatible types between variables\n");
                     exit(7);
                 }
-                result_var_type = sym_var;
+                result_var_type = sym_literal;
             }
             // One is variable, one is literal constant
             else if ((left_var_type != sym_literal && right_var_type == sym_literal) || (left_var_type == sym_literal && right_var_type != sym_literal)){
@@ -709,7 +713,7 @@ symtable_type_t check_expression(AST *ast, ht_table_t *table, sym_stack_t *stack
                 }
                 else if (var_type == sym_int_type && literal_type == sym_float_type){
                     if (type_of_variable == sym_var){
-                        fprintf(stderr, "Semantic error 7: Cannot apply conversion to VAR variable\n");
+                        fprintf(stderr, "Semantic error 7: Cannot apply conversion to VAR variable f\n");
                         exit(7);
                     }
                 }
@@ -717,7 +721,7 @@ symtable_type_t check_expression(AST *ast, ht_table_t *table, sym_stack_t *stack
                     fprintf(stderr, "Semantic error 7: Incompatible types between variable and literal\n");
                     exit(7);
                 }
-                result_var_type = sym_var;
+                result_var_type = sym_literal;
             }
             // Both are literals
             else{
@@ -766,13 +770,13 @@ symtable_type_t check_expression(AST *ast, ht_table_t *table, sym_stack_t *stack
                 // One is int, other float
                 else if (left_type == sym_int_type && right_type == sym_float_type){
                     if (left_var_type == sym_var){
-                        fprintf(stderr, "Semantic error 7: Cannot apply conversion to VAR variable\n");
+                        fprintf(stderr, "Semantic error 7: Cannot apply conversion to VAR variable g\n");
                         exit(7);
                     }
                 }
                 else if(left_type == sym_float_type && right_type == sym_int_type) {
                     if (right_var_type == sym_var){
-                        fprintf(stderr, "Semantic error 7: Cannot apply conversion to VAR variable\n");
+                        fprintf(stderr, "Semantic error 7: Cannot apply conversion to VAR variable h\n");
                         exit(7);
                     }
                 }
@@ -807,7 +811,7 @@ symtable_type_t check_expression(AST *ast, ht_table_t *table, sym_stack_t *stack
                 }
                 else if (var_type == sym_int_type && literal_type == sym_float_type){
                     if (type_of_variable == sym_var){
-                        fprintf(stderr, "Semantic error 7: Cannot apply conversion to VAR variable\n");
+                        fprintf(stderr, "Semantic error 7: Cannot apply conversion to VAR variable i\n");
                         exit(7);
                     }
                 }
