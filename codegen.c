@@ -276,9 +276,9 @@ void generate_expression(ASTNode *token_node, AST *ast){
                 printf("PUSHS int@%s\n", current_token_data);
             }
             else if(current_token_type == float_token){
-                // Converts string to actual float value
+                // Converts string to actual double value
                 char *tmp;
-                double value = strtof(current_token_data, &tmp);
+                double value = strtod(current_token_data, &tmp);
                 printf("PUSHS float@%a\n", value);
             }
             else if(current_token_type == null_token){
