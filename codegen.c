@@ -255,8 +255,7 @@ void generate_expression(ASTNode *token_node, AST *ast){
 
             // Checks for division by 0
             printf("JUMPIFNEQ division_continuation%d GF@__typecheck_var int@0\n", div_counter);
-            printf("CLEARS\n"); // clears after itself
-            printf("EXIT int@10\n");
+            printf("EXIT int@57\n");
 
             // Continues here if not dividing by 0
             printf("LABEL division_continuation%d\n", div_counter);
@@ -921,7 +920,6 @@ void generate_builtin_functions(){
     printf("DEFVAR LF@__len\n");
     printf("DEFVAR LF@__cond\n");
     printf("DEFVAR LF@__substring\n");
-    printf("DEFVAR LF@__tmp_string\n");
     printf("DEFVAR LF@__tmp_char\n");
 
     // Check for error conditions
@@ -948,16 +946,15 @@ void generate_builtin_functions(){
     printf("GT LF@__cond LF@__j LF@__len\n");
     printf("JUMPIFEQ ifj_substring_error LF@__cond bool@true\n");
 
-    // Empty string init
-    printf("MOVE LF@__substring string@\\000\n");    // This in putting in ASCII char with value 0, which is NULL char??? but works... whatever
+    // Initialize empty string
+    printf("MOVE LF@__substring string@\n");
 
     // while loop
     printf("LABEL ifj_substring_while\n");
     printf("JUMPIFEQ ifj_substring_while_end LF@__i LF@__j\n");
 
     printf("GETCHAR LF@__tmp_char LF@__s LF@__i\n");
-    printf("MOVE LF@__tmp_string LF@__substring\n");
-    printf("CONCAT LF@__substring LF@__tmp_string LF@__tmp_char\n");
+    printf("CONCAT LF@__substring LF@__substring LF@__tmp_char\n");
 
     printf("ADD LF@__i LF@__i int@1\n"); // i++
     printf("JUMP ifj_substring_while\n");
