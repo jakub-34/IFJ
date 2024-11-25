@@ -195,7 +195,7 @@ token_t* expression(token_t *token, AST *ast){
         int row;
         int column;
         bool correct_input = false;
-        if(token->type == identifier_token || token->type == int_token || token->type == float_token || token->type == string_token) {
+        if(token->type == identifier_token || token->type == int_token || token->type == float_token || token->type == string_token || token->type == null_token) {
             column = 13;
             correct_input = true;
         }
@@ -230,7 +230,7 @@ token_t* expression(token_t *token, AST *ast){
 
         //shift
         if(strcmp(precedence_table[row][column], "S") == 0){
-            if(token->type == identifier_token || token->type == int_token || token->type == float_token || token->type == string_token) {
+            if(token->type == identifier_token || token->type == int_token || token->type == float_token || token->type == string_token || token->type == null_token) {
             Stack_insert_str(&stack);
                 Stack_Push(&stack, "i", 10);
                 bst_node_t *node = bts_create_node(token);
