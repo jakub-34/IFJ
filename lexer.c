@@ -658,10 +658,14 @@ token_t* get_token(){
                     state = identifier;
                     append_to_str_buffer(buffer, current_char);
                 }
-                else{
-                    fprintf(stderr, "lexical error\n");
-                    exit(1);
+                else {
+                    ungetc(current_char, stdin);
+                    return create_token(kw_check(buffer->string), buffer->string);
                 }
+                // else{
+                //     fprintf(stderr, "lexical error\n");
+                //     exit(1);
+                // }
                 break;
             
             case built_in_function_j:
