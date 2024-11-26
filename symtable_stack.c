@@ -48,7 +48,7 @@ void sym_stack_pop(sym_stack_t *stack){
 
 // Resize stack
 void sym_stack_resize(sym_stack_t *stack){
-    printf("Resizing stack\n");
+    // printf("Resizing stack\n");
     stack->size *= 2;
     stack->table = (ht_table_t **)realloc(stack->table, sizeof(ht_table_t *) * stack->size);
     if(stack->table == NULL){
