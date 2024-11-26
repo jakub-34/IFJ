@@ -9,6 +9,7 @@
 typedef struct {
 	/** Pole pro uložení hodnot. */
 	bst_node_t **node;
+	int size;
 	/** Index prvku na vrcholu zásobníku. */
 	int topIndex;
 } bts_Stack;
@@ -19,13 +20,13 @@ void bts_Stack_Init(bts_Stack *bts_Stack, size_t size);
 
 bool bts_Stack_IsEmpty(const bts_Stack *bts_Stack);
 
-bool bts_Stack_IsFull(const bts_Stack *bts_Stack, int size);
+bool bts_Stack_IsFull(const bts_Stack *bts_Stack);
 
 bst_node_t *bts_Stack_Top(const bts_Stack *bts_Stack);
 
 void bts_Stack_Pop(bts_Stack *bts_Stack);
 
-void bts_Stack_Push(bts_Stack *bts_Stack, bst_node_t *node, size_t size);
+void bts_Stack_Push(bts_Stack *bts_Stack, bst_node_t *node);
 
 void bts_Stack_Dispose(bts_Stack *bts_Stack);
 

@@ -55,7 +55,7 @@ void bts_append(bts_Stack *stack, char* operation) {
     //printf("pravy koren je %s\n", node->right->value->data);
 
     //push new node to stack
-    bts_Stack_Push(stack, node, 10); 
+    bts_Stack_Push(stack, node); 
 }
 
 /**
@@ -178,7 +178,7 @@ token_t* expression(token_t *token, AST *ast){
 
     Stack stack;
     Stack_Init(&stack, 10);
-    Stack_Push(&stack, "$", 10);
+    Stack_Push(&stack, "$");
 
     bts_Stack bts_stack;
     bts_Stack_Init(&bts_stack, 10);
@@ -232,13 +232,13 @@ token_t* expression(token_t *token, AST *ast){
         if(strcmp(precedence_table[row][column], "S") == 0){
             if(token->type == identifier_token || token->type == int_token || token->type == float_token || token->type == string_token || token->type == null_token) {
             Stack_insert_str(&stack);
-                Stack_Push(&stack, "i", 10);
+                Stack_Push(&stack, "i");
                 bst_node_t *node = bts_create_node(token);
-                bts_Stack_Push(&bts_stack,node,10);
+                bts_Stack_Push(&bts_stack, node);
             }
             else {
                 Stack_insert_str(&stack);
-                Stack_Push(&stack, token->data, 10);
+                Stack_Push(&stack, token->data);
             }
 
             token = check_token(token, &brackets, output_token);
@@ -249,16 +249,16 @@ token_t* expression(token_t *token, AST *ast){
             char *rule = Stack_rule_str(&stack);
             process_rule(rule, &bts_stack);
             Stack_extract_str(&stack);
-            Stack_Push(&stack, "E",10);
+            Stack_Push(&stack, "E");
         }
 
         //equal operation
         else if (strcmp(precedence_table[row][column], "=") == 0) {
-            Stack_Push(&stack, token->data, 10);
+            Stack_Push(&stack, token->data);
             char *rule = Stack_rule_str(&stack);
             process_rule(rule, &bts_stack);
             Stack_extract_str(&stack);
-            Stack_Push(&stack, "E",10);
+            Stack_Push(&stack, "E");
 
             token = check_token(token, &brackets, output_token);
         }
@@ -292,6 +292,8 @@ token_t* expression(token_t *token, AST *ast){
     bts_Stack_Pop(&bts_stack);
     create_postfix(parent, ast);
     
+    Stack_Dispose(&stack);
+    bts_Stack_Dispose(&bts_stack);
     return output_token;
 }
 

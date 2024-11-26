@@ -2,17 +2,19 @@
 #include <stdlib.h>
 #include <string.h>
 
+
 void Stack_Init(Stack *stack, size_t size) {
 	stack->string = (char **)malloc(size * sizeof(char *));
 	stack->topIndex = -1;
+	stack->size = 10;
 }
 
 bool Stack_IsEmpty(const Stack *stack) {
 	return stack->topIndex == -1;
 }
 
-bool Stack_IsFull(const Stack *stack, int size) {
-	return size == stack->topIndex + 1;
+bool Stack_IsFull(const Stack *stack) {
+	return stack->size == stack->topIndex + 1;
 }
 
 char *Stack_Top(const Stack *stack) {
@@ -28,22 +30,31 @@ void Stack_Pop( Stack *stack ) {
 	}
 }
 
-void Stack_Push(Stack *stack, char *string, size_t size) {
-	if (Stack_IsFull(stack, size)){
-		return;
-	}
-
-	stack->topIndex ++;
-	stack->string[stack->topIndex] = string;
-	
+// Resize stack
+void Stack_resize(Stack *stack){
+    // printf("Resizing stack\n");
+    stack->size *= 2;
+    stack->string = (char **)realloc(stack->string, sizeof(char *) * stack->size);
+    if(stack->string == NULL){
+        fprintf(stderr, "Error: realloc failed\n");
+        exit(99);
+    }
 }
 
+void Stack_Push(Stack *stack, char *string) {
+	if (Stack_IsFull(stack)){
+		Stack_resize(stack);
+	}
+
+	stack->topIndex++;
+	stack->string[stack->topIndex] = string;
+}
 
 void Stack_Dispose( Stack *stack ) {
 	stack->topIndex = -1;
 	free(stack->string);
 	stack->string = NULL;
-	}
+}
 
 int Stack_less_than(Stack *stack) {
 	for (int stack_idx = stack->topIndex; stack_idx >= 0; stack_idx--) {
@@ -98,11 +109,11 @@ char *Stack_extract_str(Stack *stack) {
 
 void Stack_insert_str(Stack *stack) {
 	if (strcmp(Stack_Top(stack), "E") != 0){
-		Stack_Push(stack, "[", 10);
+		Stack_Push(stack, "[");
 	}
 	else{
 		Stack_Pop(stack);
-		Stack_Push(stack, "[", 10);
-		Stack_Push(stack, "E", 10);
+		Stack_Push(stack, "[");
+		Stack_Push(stack, "E");
 	}
 }

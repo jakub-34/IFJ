@@ -9,6 +9,7 @@
 typedef struct {
 	/** Pole pro uložení hodnot. */
 	char **string;
+	int size;
 	/** Index prvku na vrcholu zásobníku. */
 	int topIndex;
 } Stack;
@@ -19,13 +20,13 @@ void Stack_Init(Stack *stack, size_t size);
 
 bool Stack_IsEmpty(const Stack *stack);
 
-bool Stack_IsFull(const Stack *stack, int size);
+bool Stack_IsFull(const Stack *stack);
 
 char *Stack_Top(const Stack *stack);
 
 void Stack_Pop(Stack *stack);
 
-void Stack_Push(Stack *stack, char *string, size_t size);
+void Stack_Push(Stack *stack, char *string);
 
 void Stack_Dispose(Stack *stack);
 
