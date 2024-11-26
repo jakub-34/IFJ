@@ -7,7 +7,7 @@
 #define BTREE_H
 
 #include <stdbool.h>
-#include "./token.h"
+#include "token.h"
 
 
 // Uzel stromu

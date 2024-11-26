@@ -5,6 +5,7 @@
         "bts_stack.h": "c",
         "stdlib.h": "c",
         "stdbool.h": "c",
-        "string.h": "c"
+        "string.h": "c",
+        "symtable_stack.h": "c"
     }
 }
