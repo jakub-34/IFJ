@@ -316,8 +316,8 @@ void generate_if_statement(ASTNode *token_node, AST *ast){
 
             printf("DEFVAR LF@%s\n", token_node->token->data);
 
-            printf("ADD GF@__decl_cnt GF@__decl_cnt int@1\n");
             global_decl_cnt++;
+            printf("MOVE GF@__decl_cnt int@%d\n", global_decl_cnt);
             
         printf("LABEL ex_declskip%d\n", current_if_label);
             
@@ -474,9 +474,9 @@ void generate_variable_declaration(ASTNode *token_node, AST *ast){
         // If we are declaring variable for the first time, increase the counters so interpret dodges this part of code
         // when ex. going back in while loop
         printf("DEFVAR LF@%s\n", var_name);
-        printf("ADD GF@__decl_cnt GF@__decl_cnt int@1\n");
         global_decl_cnt++;
-    
+        printf("MOVE GF@__decl_cnt int@%d\n", global_decl_cnt);
+
     printf("LABEL declskip%d\n", decl_label_cnt);
 
     decl_label_cnt++;
