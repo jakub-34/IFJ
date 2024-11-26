@@ -3,7 +3,7 @@
 
 #include <stdio.h>
 #include <stdbool.h>
-#include "./btree.h"
+#include "btree.h"
 
 /** ADT zásobník implementovaný v dynamickém poli. */
 typedef struct {
@@ -16,7 +16,7 @@ typedef struct {
 
 void bts_Stack_Error( int );
 
-void bts_Stack_Init(bts_Stack *bts_Stack, size_t size);
+void bts_Stack_Init(bts_Stack *bts_Stack);
 
 bool bts_Stack_IsEmpty(const bts_Stack *bts_Stack);
 

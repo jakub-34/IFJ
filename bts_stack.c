@@ -1,12 +1,16 @@
-#include "./bts_stack.h"
+#include "bts_stack.h"
 #include <stdlib.h>
 #include <stdbool.h>
 
 
-void bts_Stack_Init(bts_Stack *bts_Stack, size_t size) {
-	bts_Stack->node = (bst_node_t **)malloc(size * sizeof(bst_node_t *));
+void bts_Stack_Init(bts_Stack *bts_Stack) {
+	bts_Stack->size = 50;
+	bts_Stack->node = (bst_node_t **)malloc(bts_Stack->size * sizeof(bst_node_t *));
+	if(bts_Stack->node == NULL){
+		fprintf(stderr, "Error: malloc failed\n");
+		exit(99);
+	}
 	bts_Stack->topIndex = -1;
-	bts_Stack->size = 10;
 }
 
 bool bts_Stack_IsEmpty(const bts_Stack *bts_Stack) {

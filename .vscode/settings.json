@@ -1,0 +1,10 @@
+{
+    "files.associations": {
+        "*.embeddedhtml": "html",
+        "string_stack.h": "c",
+        "bts_stack.h": "c",
+        "stdlib.h": "c",
+        "stdbool.h": "c",
+        "string.h": "c"
+    }
+}

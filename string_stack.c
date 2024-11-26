@@ -1,12 +1,16 @@
-#include "./string_stack.h"
+#include "string_stack.h"
 #include <stdlib.h>
 #include <string.h>
 
 
-void Stack_Init(Stack *stack, size_t size) {
-	stack->string = (char **)malloc(size * sizeof(char *));
+void Stack_Init(Stack *stack) {
+	stack->size = 50;
+	stack->string = (char **)malloc(stack->size * sizeof(char *));
+	if(stack->string == NULL){
+		fprintf(stderr, "Error: malloc failed\n");
+		exit(99);
+	}
 	stack->topIndex = -1;
-	stack->size = 10;
 }
 
 bool Stack_IsEmpty(const Stack *stack) {

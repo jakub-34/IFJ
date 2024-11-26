@@ -3,7 +3,7 @@
 
 #include <stdio.h>
 #include <stdbool.h>
-#include "./lexer.h"
+#include "lexer.h"
 
 /** ADT zásobník implementovaný v dynamickém poli. */
 typedef struct {
@@ -16,7 +16,7 @@ typedef struct {
 
 void Stack_Error( int );
 
-void Stack_Init(Stack *stack, size_t size);
+void Stack_Init(Stack *stack);
 
 bool Stack_IsEmpty(const Stack *stack);
 

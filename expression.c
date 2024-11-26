@@ -2,13 +2,13 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdbool.h>
-#include "./lexer.h"
-#include "./token.h"
-#include "./string_stack.h"
-#include "./bts_stack.h"
-#include "./btree.h"
-#include "./expression.h"
-#include "./ast.h"
+#include "lexer.h"
+#include "token.h"
+#include "string_stack.h"
+#include "bts_stack.h"
+#include "btree.h"
+#include "expression.h"
+#include "ast.h"
 
 void create_postfix(bst_node_t *node, AST *ast);
 
@@ -177,11 +177,11 @@ token_t* expression(token_t *token, AST *ast){
     }
 
     Stack stack;
-    Stack_Init(&stack, 10);
+    Stack_Init(&stack);
     Stack_Push(&stack, "$");
 
     bts_Stack bts_stack;
-    bts_Stack_Init(&bts_stack, 10);
+    bts_Stack_Init(&bts_stack);
 
     token_t *output_token;
     output_token = malloc(sizeof(token_t));
