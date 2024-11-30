@@ -17,11 +17,19 @@ typedef struct {
     ASTNode *currentLine;
 } AST;
 
-
+// Creates and initializes new AST
 AST *create_ast();
+
+// Creates new node with token as data and saves it to ast
 void create_node(token_t *token, AST *ast);
+
+// Moves the active pointer to next node
 ASTNode *next_node(AST *ast);
+
+// Prints out ast with data and type of each node
 void print_ast(AST *ast);
+
+// Destroys ast and frees allocated memory
 void destroy_ast(AST *ast);
 
 #endif //AST_H
