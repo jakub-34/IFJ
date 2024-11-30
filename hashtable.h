@@ -15,7 +15,8 @@ typedef enum symtable_type{
   // until this are types used for type of identifier
   sym_null_type,  // type for null value
   sym_void_type,  // for type of return value
-  sym_bool_type   // for condition result
+  sym_bool_type,   // for condition result
+  sym_str_lit_type  // raw string
 }symtable_type_t;
 
 // Type for modifiable, constatnt variables and literals

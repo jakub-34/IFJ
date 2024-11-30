@@ -9,13 +9,7 @@
 #include "hashtable.h"
 #include "semantics.h"
 
-/*
-KNOWN BUGS:
-    Cant convert 5.0 to int
-    Doesnt account for values known at compile time
-*/
-
-// Global variable for keeping the current function name
+// Global variable for keeping track of the current function name
 char *current_function_name;
 
 // Function declarations
@@ -32,30 +26,32 @@ void assignment_or_expression(AST *ast, ht_table_t *table, sym_stack_t *stack);
 void check_function_call_args(AST *ast, ht_table_t *table, sym_stack_t *stack);
 bool check_types_compatibility(symtable_type_t expected_type, symtable_type_t actual_type);
 
-// Starting function
+/************ Main function of semantics analyzer ****************/
 void semantic_analysis(AST *ast){
     ast->active = ast->root;
 
+    // Creates and initializes symtable and stack
     ht_table_t table;
     ht_init(&table, 101);
     sym_stack_t stack;
     sym_stack_init(&stack);
 
+    // Goes through the code for the first time and gets all the function declarations only
     get_fun_declarations(ast, &table);
 
     ht_item_t *main_fun = get_item(&stack, &table, "main");
 
-    // Check for main and correct definition of main
+    // Check for main function and correct definition of main
     if (main_fun == NULL){
         fprintf(stderr, "Semantic error 3: Missing main function\n");
         exit(3);
     }
-    
+    // Checks return type
     if (main_fun->return_type != sym_void_type){
         fprintf(stderr, "Semantic error 4: Main cannot have a return type\n");
         exit(4);
     }
-
+    // Checks parameters
     if (main_fun->params != NULL){
         fprintf(stderr, "Semantic error 4: Main cannot have parameters\n");
         exit(4);
@@ -71,13 +67,14 @@ void semantic_analysis(AST *ast){
     item.input_parameters = -1;
     item.params = NULL;
     item.return_type = sym_void_type;
-
     ht_insert(&table, &item);
+
+    // Gets declarations of the built-in functions
     get_builtin_fun_declarations(&table);
 
+    // Second walk through
     ast->active = ast->root;
     analyze_code(ast, &table, &stack);
-
 
     ht_delete_all(&table);
 }
@@ -101,11 +98,14 @@ void save_fun_dec(AST *ast, ht_table_t *table){
     next_node(ast); // skip fn
 
     ht_item_t item;
-    
+
     item.name = ast->active->token->data;
-    // char *fun_name = ast->active->token->data;
     int args_cnt = 0;
     symtable_type_t *arg_types_ptr = (symtable_type_t *)malloc((sizeof(symtable_type_t))*20);
+    if (arg_types_ptr == NULL){
+        fprintf(stderr, "Error allocating memory\n");
+        exit(99);
+    }
 
     next_node(ast); // skip fun_name
     next_node(ast); // skip (
@@ -116,6 +116,7 @@ void save_fun_dec(AST *ast, ht_table_t *table){
         arg_types_ptr = NULL;
     }
 
+    // Goes through all the parameters
     while(strcmp(ast->active->token->data, ")") != 0){
         next_node(ast); // skip arg_name
         next_node(ast); // skip :
@@ -145,7 +146,7 @@ void save_fun_dec(AST *ast, ht_table_t *table){
         arg_types_ptr[args_cnt] = arg_type;
         args_cnt++;
         next_node(ast);
-        // Skip ',', because ',' can be also after last argument but doesnt have to
+        // Skip ',' because ',' can be also after last argument but doesnt have to
         if (strcmp(ast->active->token->data, ",") == 0){
             next_node(ast);
         }
@@ -180,7 +181,7 @@ void save_fun_dec(AST *ast, ht_table_t *table){
     // Sets the values
     item.type = sym_func_type;
     item.var_type = sym_const;
-    item.used = false;
+    item.used = true;
     item.modified = true;
     item.input_parameters = args_cnt;
     item.params = arg_types_ptr;
@@ -221,30 +222,50 @@ void get_builtin_fun_declarations(ht_table_t *table){
     item.name = "ifj$write";
     item.input_parameters = 1;
     item.params = malloc(sizeof(symtable_type_t) * 1);
+    if (item.params == NULL){
+        fprintf(stderr, "Error allocating memory\n");
+        exit(99);
+    }
     item.params[0] = sym_void_type;     // sym_void_type indicating that it can take any type of argument
     item.return_type = sym_void_type;
     ht_insert(table, &item);
 
     item.name = "ifj$i2f";
     item.params = malloc(sizeof(symtable_type_t) * 1);
+    if (item.params == NULL){
+        fprintf(stderr, "Error allocating memory\n");
+        exit(99);
+    }
     item.params[0] = sym_int_type;
     item.return_type = sym_float_type;
     ht_insert(table, &item);
 
     item.name = "ifj$f2i";
     item.params = malloc(sizeof(symtable_type_t) * 1);
+    if (item.params == NULL){
+        fprintf(stderr, "Error allocating memory\n");
+        exit(99);
+    }
     item.params[0] = sym_float_type;
     item.return_type = sym_int_type;
     ht_insert(table, &item);
 
     item.name = "ifj$string";
     item.params = malloc(sizeof(symtable_type_t) * 1);
+    if (item.params == NULL){
+        fprintf(stderr, "Error allocating memory\n");
+        exit(99);
+    }
     item.params[0] = sym_string_type;
     item.return_type = sym_string_type;
     ht_insert(table, &item);
 
     item.name = "ifj$length";
     item.params = malloc(sizeof(symtable_type_t) * 1);
+    if (item.params == NULL){
+        fprintf(stderr, "Error allocating memory\n");
+        exit(99);
+    }
     item.params[0] = sym_string_type;
     item.return_type = sym_int_type;
     ht_insert(table, &item);
@@ -252,6 +273,10 @@ void get_builtin_fun_declarations(ht_table_t *table){
     item.name = "ifj$concat";
     item.input_parameters = 2;
     item.params = malloc(sizeof(symtable_type_t) * 2);
+    if (item.params == NULL){
+        fprintf(stderr, "Error allocating memory\n");
+        exit(99);
+    }
     item.params[0] = sym_string_type;
     item.params[1] = sym_string_type;
     item.return_type = sym_string_type;
@@ -260,6 +285,10 @@ void get_builtin_fun_declarations(ht_table_t *table){
     item.name = "ifj$substring";
     item.input_parameters = 3;
     item.params = malloc(sizeof(symtable_type_t) * 3);
+    if (item.params == NULL){
+        fprintf(stderr, "Error allocating memory\n");
+        exit(99);
+    }
     item.params[0] = sym_string_type;
     item.params[1] = sym_int_type;
     item.params[2] = sym_int_type;
@@ -269,6 +298,10 @@ void get_builtin_fun_declarations(ht_table_t *table){
     item.name = "ifj$strcmp";
     item.input_parameters = 2;
     item.params = malloc(sizeof(symtable_type_t) * 2);
+    if (item.params == NULL){
+        fprintf(stderr, "Error allocating memory\n");
+        exit(99);
+    }
     item.params[0] = sym_string_type;
     item.params[1] = sym_string_type;
     item.return_type = sym_int_type;
@@ -276,6 +309,10 @@ void get_builtin_fun_declarations(ht_table_t *table){
 
     item.name = "ifj$ord";
     item.params = malloc(sizeof(symtable_type_t) * 2);
+    if (item.params == NULL){
+        fprintf(stderr, "Error allocating memory\n");
+        exit(99);
+    }
     item.params[0] = sym_string_type;
     item.params[1] = sym_int_type;
     item.return_type = sym_int_type;
@@ -284,12 +321,17 @@ void get_builtin_fun_declarations(ht_table_t *table){
     item.name = "ifj$chr";
     item.input_parameters = 1;
     item.params = malloc(sizeof(symtable_type_t) * 1);
+    if (item.params == NULL){
+        fprintf(stderr, "Error allocating memory\n");
+        exit(99);
+    }
     item.params[0] = sym_int_type;
     item.return_type = sym_string_type;
     ht_insert(table, &item);
 }
 
 /***************************************************** MAIN CYCLE *************************************************************/
+// Calls appropriate function for semantic checks based on current code
 void analyze_code(AST *ast, ht_table_t *table, sym_stack_t *stack){
     while(ast->active != NULL && ast->active->token->type != eof_token){
         // For keeping track of scopes, so we can check missing return keyword
@@ -298,6 +340,7 @@ void analyze_code(AST *ast, ht_table_t *table, sym_stack_t *stack){
         static bool in_if = false;
         static bool return_in_if = false;
 
+        // Depending on current code, chooses correct function
         if (strcmp(ast->active->token->data, "var") == 0 || strcmp(ast->active->token->data, "const") == 0){
             var_definition(ast, table, stack);
         }
@@ -320,12 +363,14 @@ void analyze_code(AST *ast, ht_table_t *table, sym_stack_t *stack){
         }
         else if (strcmp(ast->active->token->data, "}") == 0){
             scope_cnt--;
+            // Updates variables for checking missing return keyword after exiting scope
             if (in_if == false){
                 return_in_if = false;
             }
             if (scope_cnt == 1){
                 in_if = false;
             }
+            // Checks for missing return when exiting scope of function
             else if (scope_cnt == 0 && !found_return){
                 ht_item_t *fun = get_item(stack, table, current_function_name);
 
@@ -364,13 +409,14 @@ void analyze_code(AST *ast, ht_table_t *table, sym_stack_t *stack){
 // Defining new variable and inserting it into symtable
 void var_definition(AST *ast, ht_table_t *table, sym_stack_t *stack){
     symtable_var_type_t var_type;
+    // Check if its var or const
     if (strcmp(ast->active->token->data, "var") == 0) {
         var_type = sym_var;
     }
     else{
         var_type = sym_const;
     }
-    next_node(ast); // skip "var/const"
+    next_node(ast); // skip 'var/const'
     
     char *identifier = ast->active->token->data;
     // Check for variable redefinition
@@ -471,7 +517,7 @@ void var_definition(AST *ast, ht_table_t *table, sym_stack_t *stack){
 
             type = check_expression(ast, table, stack);
 
-            if (type == sym_string_type){
+            if (type == sym_str_lit_type){
                 fprintf(stderr, "Semantic error 8: Invalid expressing type, cannot asign string to var: %s\n", identifier);
                 exit(8);
             }
@@ -506,7 +552,9 @@ symtable_type_t check_expression(AST *ast, ht_table_t *table, sym_stack_t *stack
     int stack_top = -1;
 
     symtable_type_t type = sym_void_type;
+    // Until it reaches end of expression
     while (ast->active->token->type != semicolon_token && ast->active->token->type != bracket_token){
+        // Literals
         if (ast->active->token->type == int_token){
             type_stack[++stack_top].type = sym_int_type;
             type_stack[stack_top].var_type = sym_literal;
@@ -516,13 +564,14 @@ symtable_type_t check_expression(AST *ast, ht_table_t *table, sym_stack_t *stack
             type_stack[stack_top].var_type = sym_literal;
         }
         else if (ast->active->token->type == string_token){
-            type_stack[++stack_top].type = sym_string_type;
+            type_stack[++stack_top].type = sym_str_lit_type;
             type_stack[stack_top].var_type = sym_literal;
         }
         else if (ast->active->token->type == null_token){
             type_stack[++stack_top].type = sym_null_type;
             type_stack[stack_top].var_type = sym_literal;
         }
+        // variable
         else if (ast->active->token->type == identifier_token){
             // check if the variable is defined
             ht_item_t *var_entry = get_item(stack, table, ast->active->token->data);
@@ -534,9 +583,6 @@ symtable_type_t check_expression(AST *ast, ht_table_t *table, sym_stack_t *stack
 
             type_stack[++stack_top].type = var_entry->type;
             type_stack[stack_top].var_type = var_entry->var_type;
-            // fprintf(stderr, "Type: %d\n", type_stack[stack_top].type);
-            // fprintf(stderr, "Var type: %d\n", type_stack[stack_top].var_type);
-
         }
         // Binary arithmetic operations
         else if (strcmp(ast->active->token->data, "+") == 0 || strcmp(ast->active->token->data, "-") == 0  || strcmp(ast->active->token->data, "*") == 0  || strcmp(ast->active->token->data, "/") == 0){
@@ -556,6 +602,7 @@ symtable_type_t check_expression(AST *ast, ht_table_t *table, sym_stack_t *stack
 
             // Both operands are variables
             if(left_var_type != sym_literal && right_var_type != sym_literal){
+                // same types
                 if(left_type == right_type){
                     if (left_type == sym_nullable_int_type || left_type == sym_nullable_float_type ||
                         left_type == sym_nullable_string_type || left_type == sym_null_type){
@@ -569,7 +616,9 @@ symtable_type_t check_expression(AST *ast, ht_table_t *table, sym_stack_t *stack
                     result_type = left_type;
                     result_var_type = left_var_type;
                 }
+                // One is integer second is float
                 else if (left_type == sym_int_type && right_type == sym_float_type){
+                    // integer is not const and so cannot be converted to float
                     if (left_var_type == sym_var){
                         fprintf(stderr, "Semantic error 7: Cannot apply conversion to VAR variable a\n");
                         exit(7);
@@ -577,7 +626,9 @@ symtable_type_t check_expression(AST *ast, ht_table_t *table, sym_stack_t *stack
                     result_type = sym_float_type;
                     result_var_type = sym_const;
                 }
+                // One is integer second is float
                 else if(left_type == sym_float_type && right_type == sym_int_type) {
+                    // integer is not const and so cannot be converted to float
                     if (right_var_type == sym_var){
                         fprintf(stderr, "Semantic error 7: Cannot apply conversion to VAR variable b\n");
                         exit(7);
@@ -597,16 +648,20 @@ symtable_type_t check_expression(AST *ast, ht_table_t *table, sym_stack_t *stack
 
                 symtable_var_type_t type_of_variable = (left_var_type != sym_literal) ? left_var_type : right_var_type;
 
+                // variable is string
                 if (var_type == sym_string_type){
                     fprintf(stderr, "Semantic error 7: Cannot perform arithmetic operations with strings\n");
                     exit(7);
                 }
+                // same types
                 else if (var_type == literal_type){
                     result_type = var_type;
                 }
+                // variable is float, literal is integer, can be converted
                 else if (var_type == sym_float_type && literal_type == sym_int_type){
                     result_type = sym_float_type;
                 }
+                // variable is int, literal is float
                 else if (var_type == sym_int_type && literal_type == sym_float_type){
                     if (type_of_variable == sym_var){    
                         fprintf(stderr, "Semantic error 7: Cannot apply conversion to VAR variable c\n");
@@ -622,9 +677,11 @@ symtable_type_t check_expression(AST *ast, ht_table_t *table, sym_stack_t *stack
             }
             // Both operands are literal constants
             else if (left_var_type == sym_literal && right_var_type == sym_literal){
+                // Both integers
                 if (left_type == sym_int_type && right_type == sym_int_type){
                     result_type = sym_int_type;
                 }
+                // One is integer and the other is float or both are floats
                 else if ((left_type == sym_int_type && right_type == sym_float_type) || (left_type == sym_float_type && right_type == sym_int_type) || (left_type == sym_float_type && right_type == sym_float_type)){
                     result_type = sym_float_type;
                 }
@@ -681,6 +738,7 @@ symtable_type_t check_expression(AST *ast, ht_table_t *table, sym_stack_t *stack
                         exit(7);
                     }
                 }
+                // One is int, other float
                 else if(left_type == sym_float_type && right_type == sym_int_type) {
                     if (right_var_type == sym_var){
                         fprintf(stderr, "Semantic error 7: Cannot apply conversion to VAR variable e\n");
@@ -700,17 +758,20 @@ symtable_type_t check_expression(AST *ast, ht_table_t *table, sym_stack_t *stack
 
                 symtable_var_type_t type_of_variable = (left_var_type != sym_literal) ? left_var_type : right_var_type;
                 
+                // Variable is []u8
                 if (var_type == sym_string_type){
                     fprintf(stderr, "Semantic error 7: Cannot perform arithmetic operations with strings\n");
                     exit(7);
                 }
+                // same types
                 else if (var_type == literal_type){
                     // Nothing needs to be done
                 }
-                // Possible int -> float conversion
+                // variable is float, literal is integer = possible int -> float conversion
                 else if (var_type == sym_float_type && literal_type == sym_int_type){
                     // Nothing needs to be done
                 }
+                // variable is integer, literal is float
                 else if (var_type == sym_int_type && literal_type == sym_float_type){
                     if (type_of_variable == sym_var){
                         fprintf(stderr, "Semantic error 7: Cannot apply conversion to VAR variable f\n");
@@ -725,10 +786,12 @@ symtable_type_t check_expression(AST *ast, ht_table_t *table, sym_stack_t *stack
             }
             // Both are literals
             else{
+                // Same and compatible types
                 if ((left_type == sym_int_type && right_type == sym_int_type) ||
                     (left_type == sym_float_type && right_type == sym_float_type)){
                     // Nothing needs to be done
                 }
+                // Different but convertable types
                 else if ((left_type == sym_int_type && right_type == sym_float_type) ||
                         (left_type == sym_float_type && right_type == sym_int_type)){
                     // Nothing needs to be done
@@ -774,6 +837,7 @@ symtable_type_t check_expression(AST *ast, ht_table_t *table, sym_stack_t *stack
                         exit(7);
                     }
                 }
+                // One is int, other float
                 else if(left_type == sym_float_type && right_type == sym_int_type) {
                     if (right_var_type == sym_var){
                         fprintf(stderr, "Semantic error 7: Cannot apply conversion to VAR variable h\n");
@@ -791,30 +855,34 @@ symtable_type_t check_expression(AST *ast, ht_table_t *table, sym_stack_t *stack
                 }
                 result_var_type = sym_var;
             }
-            // One is variable, one is literal
+            // One is variable, other is literal
             else if ((left_var_type != sym_literal && right_var_type == sym_literal) || (left_var_type == sym_literal && right_var_type != sym_literal)){
                 symtable_type_t var_type = (left_var_type != sym_literal) ? left_type : right_type;
                 symtable_type_t literal_type = (left_var_type == sym_literal) ? left_type : right_type;
 
                 symtable_var_type_t type_of_variable = (left_var_type != sym_literal) ? left_var_type : right_var_type;
                 
+                // Variable is []u8
                 if (var_type == sym_string_type){
                     fprintf(stderr, "Semantic error 7: Cannot perform arithmetic operations with strings\n");
                     exit(7);
                 }
+                // same types
                 else if (var_type == literal_type){
                     // Nothing needs to be done
                 }
-                // Possible int -> float conversion
+                // variable is float, literal is integer = possible int -> float conversion
                 else if (var_type == sym_float_type && literal_type == sym_int_type){
                     // Nothing needs to be done
                 }
+                // variable is integer, literal is float
                 else if (var_type == sym_int_type && literal_type == sym_float_type){
                     if (type_of_variable == sym_var){
                         fprintf(stderr, "Semantic error 7: Cannot apply conversion to VAR variable i\n");
                         exit(7);
                     }
                 }
+                // Same types but one is including null
                 else if (var_type == sym_nullable_int_type && literal_type == sym_int_type){
                     // Nothing needs to be done
                 }
@@ -833,10 +901,12 @@ symtable_type_t check_expression(AST *ast, ht_table_t *table, sym_stack_t *stack
             }
             // Both are literals
             else{
+                // same and compatible types
                 if ((left_type == sym_int_type && right_type == sym_int_type) ||
                     (left_type == sym_float_type && right_type == sym_float_type)){
                     // Nothing needs to be done
                 }
+                // different but convertable types
                 else if ((left_type == sym_int_type && right_type == sym_float_type) ||
                         (left_type == sym_float_type && right_type == sym_int_type)){
                     // Nothing needs to be done
@@ -871,12 +941,13 @@ void new_scope_if_while(AST *ast, ht_table_t *table, sym_stack_t *stack){
     next_node(ast); // skip while/if
     next_node(ast); // skip (
 
-    // Doesnt have extension
+    // Doesnt have |extension|
     if (strcmp(ast->active->next->next->token->data, "|") != 0){
         // Get expression result type
         symtable_type_t type = check_expression(ast, table, stack);
         // after expression, ast->active is ) || ;
 
+        // If the result of the expression is not boolean
         if (type != sym_bool_type){
             fprintf(stderr, "Semantic error 7: Condition result is not of type boolean\n");
             exit(7);
@@ -886,7 +957,7 @@ void new_scope_if_while(AST *ast, ht_table_t *table, sym_stack_t *stack){
         next_node(ast); // skip {
 
     }
-    // Does have extension
+    // Does have |extension|
     else{
         ht_item_t *item = get_item(stack, table, ast->active->token->data);
         if (item == NULL){
@@ -915,6 +986,7 @@ void new_scope_if_while(AST *ast, ht_table_t *table, sym_stack_t *stack){
             exit(5);
         }
 
+        // Inserts new variable into the symtable
         ht_item_t new_item;
         new_item.name = ast->active->token->data;
         new_item.type = type;
@@ -924,7 +996,6 @@ void new_scope_if_while(AST *ast, ht_table_t *table, sym_stack_t *stack){
         new_item.input_parameters = -1;
         new_item.params = NULL;
         new_item.return_type = sym_void_type;
-
         ht_insert(table, &new_item);
         
         next_node(ast); // skip id_without_null
@@ -944,6 +1015,7 @@ void new_scope_function(AST *ast, ht_table_t *table, sym_stack_t *stack){
 
     new_scope(stack, table);
 
+    // Loop through all the arguments
     while(strcmp(ast->active->token->data, ")") != 0){
         char *arg_name = ast->active->token->data;
 
@@ -981,6 +1053,7 @@ void new_scope_function(AST *ast, ht_table_t *table, sym_stack_t *stack){
 
         next_node(ast); // skip type
 
+        // Inserts new variable to the symtable
         ht_item_t item;
         item.name = arg_name;
         item.type = arg_type;
@@ -990,7 +1063,6 @@ void new_scope_function(AST *ast, ht_table_t *table, sym_stack_t *stack){
         item.input_parameters = -1;
         item.params = NULL;
         item.return_type = sym_void_type;
-
         ht_insert(table, &item);
 
         // Skip ',', because ',' can be also after last argument but doesnt have to
@@ -1005,7 +1077,6 @@ void new_scope_function(AST *ast, ht_table_t *table, sym_stack_t *stack){
 }
 
 // Calls check_expression and compares the type to the type the expression is supposed to return
-// (DOESNT leave scope, that will happen next time it goes through while)
 void check_return_expr(AST *ast, ht_table_t *table, sym_stack_t *stack){
     next_node(ast); // skip return
     
@@ -1023,11 +1094,13 @@ void check_return_expr(AST *ast, ht_table_t *table, sym_stack_t *stack){
         return;
     }
 
+    // Check if function isn't void type
     if (current_function_type == sym_void_type){
         fprintf(stderr, "Semantic error 6: Returning expression in a function with void return type\n");
         exit(6);
     }
 
+    // Check for compatible expression and function return types
     symtable_type_t expr_type = check_expression(ast, table, stack);
 
     if (expr_type != current_function_type){
@@ -1040,14 +1113,11 @@ void check_return_expr(AST *ast, ht_table_t *table, sym_stack_t *stack){
     next_node(ast); // skip ;
 }
 
-/* Can be:
-foo();
-x = foo;
-x = y + 2;
-*/
+// Checks correct assignment or function call without assignment
 void assignment_or_expression(AST *ast, ht_table_t *table, sym_stack_t *stack){
     // Its a function call without assignment
     if (strcmp(ast->active->next->token->data, "(") == 0){
+        // Checks if function is defined
         char *fun_name = ast->active->token->data;
         ht_item_t *fun = get_item(stack, table, fun_name);
         if (fun == NULL){
@@ -1056,6 +1126,7 @@ void assignment_or_expression(AST *ast, ht_table_t *table, sym_stack_t *stack){
         }
         fun->used = true;
 
+        // Check if function is void type or illegal discarding of return type
         if (fun->return_type != sym_void_type){
             fprintf(stderr, "Semantic error 4: Illegal discarding of function return value\n");
             exit(4);
@@ -1069,6 +1140,7 @@ void assignment_or_expression(AST *ast, ht_table_t *table, sym_stack_t *stack){
         var->used = true;
         var->modified = true;
         
+        // Check if modifying var or const variable 
         if (var->var_type == sym_const){
             fprintf(stderr, "Semantic error 5: Cannot modify variable %s of type const\n", var_name);
             exit(5);
@@ -1081,6 +1153,7 @@ void assignment_or_expression(AST *ast, ht_table_t *table, sym_stack_t *stack){
 
         // Its a function assignment
         if (strcmp(ast->active->next->token->data, "(") == 0){
+            // Checks if function is defined
             char *fun_name = ast->active->token->data;
             ht_item_t *fun = get_item(stack, table, fun_name);
             if (fun == NULL){
@@ -1092,10 +1165,12 @@ void assignment_or_expression(AST *ast, ht_table_t *table, sym_stack_t *stack){
 
             symtable_type_t fun_ret_type = fun->return_type;
 
+            // Checks if function has a return type
             if (fun_ret_type == sym_void_type){
                 fprintf(stderr, "Semantic erorr 7: Assignment from function '%s' that doesnt return anything\n", fun->name);
                 exit(7);
             }
+            // Checks if function return type is compatible with type of variable assigning to
             else if (fun_ret_type != var_type && strcmp(var_name, "_") != 0){
                 if (!check_types_compatibility(var_type, fun_ret_type)){
                     fprintf(stderr, "Semantic erorr 7: Incompatible types when assigning from function\n");
@@ -1109,7 +1184,14 @@ void assignment_or_expression(AST *ast, ht_table_t *table, sym_stack_t *stack){
         // Its an expression assignment
         else{
             symtable_type_t expr_res_type = check_expression(ast, table, stack);
-            
+
+            // Check for assigning string directly to variable
+            if (expr_res_type == sym_str_lit_type){
+                fprintf(stderr, "Semantic error 7: Cannot assign string directly to variable\n");
+                exit(7);
+            }
+
+            // Checks if expression result type is compatible with type of variable assigning to
             if (var_type != expr_res_type && strcmp(var_name, "_") != 0){
                 if (!check_types_compatibility(var_type, expr_res_type)){
                     fprintf(stderr, "Semantic error 7: Incompatible assignment type\n");
@@ -1132,9 +1214,11 @@ void check_function_call_args(AST *ast, ht_table_t *table, sym_stack_t *stack){
     next_node(ast); // skip '(
     
     int idx = 0;
+    // Loop through all the arguments
     while (strcmp(ast->active->token->data, ")") != 0){
         symtable_type_t arg_type;
 
+        // When finding variable, checks if its defined
         if (ast->active->token->type == identifier_token){
             ht_item_t *var_entry = get_item(stack, table, ast->active->token->data);
             if (var_entry == NULL){
@@ -1176,6 +1260,7 @@ void check_function_call_args(AST *ast, ht_table_t *table, sym_stack_t *stack){
             next_node(ast);
         }
     }
+    // Check for correct number of arguments
     if (idx != expected_params){
         fprintf(stderr, "Semantic error 4: Invalid number of arguments\n");
         exit(4);
@@ -1185,6 +1270,7 @@ void check_function_call_args(AST *ast, ht_table_t *table, sym_stack_t *stack){
 
 // For checking compatibility with nullable types
 // Can use only when the types are different
+// Returns true if expected_type is type including null and actual_type is the same just not including null
 bool check_types_compatibility(symtable_type_t expected_type, symtable_type_t actual_type){
     if (expected_type == sym_int_type){
         return false;
@@ -1197,6 +1283,7 @@ bool check_types_compatibility(symtable_type_t expected_type, symtable_type_t ac
             return false;
         }
     }
+    // Convertable
     else if (expected_type == sym_float_type){
         if (actual_type == sym_int_type){
             return true;
@@ -1214,6 +1301,7 @@ bool check_types_compatibility(symtable_type_t expected_type, symtable_type_t ac
             return false;
         }
     }
+    // Cannot convert string to anything else
     else if (expected_type == sym_string_type){
         return false;
     }
