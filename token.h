@@ -1,3 +1,10 @@
+/*
+* Project: Implementacia prekladaca imperativneho jazyka IFJ2024
+*
+* @author: Jakub Hrdlicka <xhrdli18>
+*
+*/
+
 #ifndef TOKEN_H
 #define TOKEN_H
 

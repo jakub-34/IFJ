@@ -1,3 +1,10 @@
+/*
+* Project: Implementacia prekladaca imperativneho jazyka IFJ2024
+*
+* @author: Jakub Hrdlicka <xhrdli18>
+*
+*/
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdbool.h>

@@ -1,3 +1,10 @@
+/*
+* Project: Implementacia prekladaca imperativneho jazyka IFJ2024
+*
+* @author: Jakub Hrdlicka <xhrdli18>
+*
+*/
+
 #ifndef HASHTABLE_H
 #define HASHTABLE_H
 

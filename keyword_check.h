@@ -1,3 +1,10 @@
+/*
+* Project: Implementacia prekladaca imperativneho jazyka IFJ2024
+*
+* @author: Jakub Hrdlicka <xhrdli18>
+*
+*/
+
 #ifndef KEYWORD_CHECK_H
 #define KEYWORD_CHECK_H
 
