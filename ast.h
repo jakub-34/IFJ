@@ -1,3 +1,11 @@
+/*
+* Project: Implementace překladače imperativního jazyka IFJ24
+*
+* @author: Jakub Lůčný <xlucnyj00>
+* @author: Martin Ševčík <xsevcim00>
+*
+*/
+
 #ifndef AST_H
 #define AST_H
 

@@ -1,3 +1,11 @@
+/*
+* Project: Implementace překladače imperativního jazyka IFJ24
+*
+* @author: Jakub Lůčný <xlucnyj00>
+* @author: Martin Ševčík <xsevcim00>
+*
+*/
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
