@@ -1,3 +1,10 @@
+/*
+* Project: Implementacia prekladaca imperativneho jazyka IFJ2024
+*
+* @author: Rebeka Tydorova <xtydor01>
+* @author: Jakub Hrdlicka <xhrdli18>
+*
+*/
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -8,7 +15,7 @@
 #include "token.h"
 #include "keyword_check.h"
 
-
+//create new token
 token_t* create_token(token_type_t type, char* data) {
     token_t* token = (token_t*)malloc(sizeof(token_t));
     if (token == NULL){
@@ -18,13 +25,10 @@ token_t* create_token(token_type_t type, char* data) {
     token->type = type;
     token->data = data;
 
-    // Debug prints
-    //printf("Token data: %s\n", token->data);
-    //printf("Token type: %i\n", token->type);
-
     return token;
 }
 
+//transform escape sequence
 char escape_sequence_transformation(char current_char){
     switch (current_char) {
         case 'n':
@@ -53,7 +57,7 @@ char escape_sequence_transformation(char current_char){
     return current_char;
 }
 
-
+//return new token
 token_t* get_token(){
     str_buffer_t* buffer = create_str_buffer();
     lexer_state_t state = start;
@@ -61,9 +65,6 @@ token_t* get_token(){
     char hex_val[3];
     while(true){
         char current_char = getchar();
-        //printf("Current char: %c\n", current_char);
-        //printf("Current char: %i\n", current_char);
-        //printf("Current state: %i\n", state);
 
         switch(state){
             //starting point
@@ -662,10 +663,6 @@ token_t* get_token(){
                     ungetc(current_char, stdin);
                     return create_token(kw_check(buffer->string), buffer->string);
                 }
-                // else{
-                //     fprintf(stderr, "lexical error\n");
-                //     exit(1);
-                // }
                 break;
             
             case built_in_function_j:
@@ -742,16 +739,3 @@ token_t* get_token(){
         }
     }
 }
-
-// int main(){
-    //     token_t* token;
-//     while ((token = get_token()) != NULL){
-    //         if(token->type == eof_token){
-    //             break;
-//         }
-//         printf("Token: %s\n", token->data);
-//         printf("Type: %d\n", token->type);
-//              
-//     }
-//     return 0;
-// }

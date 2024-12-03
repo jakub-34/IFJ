@@ -1,4 +1,11 @@
 
+/*
+* Project: Implementacia prekladaca imperativneho jazyka IFJ2024
+*
+* @author: Rebeka Tydorova <xtydor01>
+* @author: Jakub Hrdlicka <xhrdli18>
+*
+*/
 #ifndef LEXER_H
 #define LEXER_H
 #include "token.h"
@@ -50,7 +57,7 @@ typedef enum lexer_state {
     built_in_function_end
 } lexer_state_t;
 
-
+//return new token
 token_t *get_token();
 
 
