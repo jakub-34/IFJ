@@ -1,3 +1,10 @@
+# Project: Implementacia prekladaca imperativneho jazyka IFJ2024
+#
+# @author: Rebeka Tydorova <xtydor01>
+# @author: Jakub Hrdlicka <xhrdli18>
+# @author: Jakub Lůčný <xlucnyj00>
+# @author: Martin Ševčík <xsevcim00>
+
 CC = gcc
 CFLAGS = -Wall -Wextra -pedantic -g
 

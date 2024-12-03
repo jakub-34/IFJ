@@ -1,3 +1,9 @@
+/*
+* Project: Implementacia prekladaca imperativneho jazyka IFJ2024
+*
+* @author: Rebeka Tydorova <xtydor01>
+*
+*/
 #ifndef _STACK_H_
 #define _STACK_H_
 
